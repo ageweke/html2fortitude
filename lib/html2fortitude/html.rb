@@ -1,38 +1,38 @@
 require 'cgi'
 require 'nokogiri'
-require 'html2haml/html/erb'
+require 'html2fortitude/html/erb'
 
-# Haml monkeypatches various Nokogiri classes
-# to add methods for conversion to Haml.
+# Html2fortitude monkeypatches various Nokogiri classes
+# to add methods for conversion to Fortitude.
 # @private
 module Nokogiri
 
   module XML
     # @see Nokogiri
     class Node
-      # Whether this node has already been converted to Haml.
+      # Whether this node has already been converted to Fortitude.
       # Only used for text nodes and elements.
       #
       # @return [Boolean]
-      attr_accessor :converted_to_haml
+      attr_accessor :converted_to_fortitude
 
-      # Returns the Haml representation of the given node.
+      # Returns the Fortitude representation of the given node.
       #
-      # @param tabs [Fixnum] The indentation level of the resulting Haml.
-      # @option options (see Html2haml::HTML#initialize)
-      def to_haml(tabs, options)
-        return "" if converted_to_haml || to_s.strip.empty?
+      # @param tabs [Fixnum] The indentation level of the resulting Fortitude.
+      # @option options (see Html2fortitude::HTML#initialize)
+      def to_fortitude(tabs, options)
+        return "" if converted_to_fortitude || to_s.strip.empty?
         text = uninterp(self.to_s)
         node = next_sibling
-        while node.is_a?(::Nokogiri::XML::Element) && node.name == "haml_loud"
-          node.converted_to_haml = true
+        while node.is_a?(::Nokogiri::XML::Element) && node.name == "fortitude_loud"
+          node.converted_to_fortitude = true
           text << '#{' <<
             CGI.unescapeHTML(node.inner_text).gsub(/\n\s*/, ' ').strip << '}'
 
           if node.next_sibling.is_a?(::Nokogiri::XML::Text)
             node = node.next_sibling
             text << uninterp(node.to_s)
-            node.converted_to_haml = true
+            node.converted_to_fortitude = true
           end
 
           node = node.next_sibling
@@ -45,11 +45,11 @@ module Nokogiri
       def erb_to_interpolation(text, options)
         return text unless options[:erb]
         text = CGI.escapeHTML(uninterp(text))
-        %w[<haml_loud> </haml_loud>].each {|str| text.gsub!(CGI.escapeHTML(str), str)}
+        %w[<fortitude_loud> </fortitude_loud>].each {|str| text.gsub!(CGI.escapeHTML(str), str)}
         ::Nokogiri::XML.fragment(text).children.inject("") do |str, elem|
           if elem.is_a?(::Nokogiri::XML::Text)
             str + CGI.unescapeHTML(elem.to_s)
-          else # <haml_loud> element
+          else # <fortitude_loud> element
             str + '#{' + CGI.unescapeHTML(elem.inner_text.strip) + '}'
           end
         end
@@ -77,7 +77,8 @@ module Nokogiri
 
         text.split("\n").map do |line|
           line.strip!
-          "#{tabulate(tabs)}#{'\\' if Haml::Parser::SPECIAL_CHARACTERS.include?(line[0])}#{line}\n"
+          # TODO ageweke
+          # "#{tabulate(tabs)}#{'\\' if Haml::Parser::SPECIAL_CHARACTERS.include?(line[0])}#{line}\n"
         end.join
       end
     end
@@ -85,9 +86,9 @@ module Nokogiri
 end
 
 # @private
-HAML_TAGS = %w[haml_block haml_loud haml_silent]
+FORTITUDE_TAGS = %w[fortitude_block fortitude_loud fortitude_silent]
 #
-# HAML_TAGS.each do |t|
+# FORTITUDE_TAGS.each do |t|
 #   Nokogiri::XML::ElementContent[t] = {}
 #   Nokogiri::XML::ElementContent.keys.each do |key|
 #     Nokogiri::XML::ElementContent[t][key.hash] = true
@@ -95,14 +96,14 @@ HAML_TAGS = %w[haml_block haml_loud haml_silent]
 # end
 #
 # Nokogiri::XML::ElementContent.keys.each do |k|
-#   HAML_TAGS.each do |el|
+#   FORTITUDE_TAGS.each do |el|
 #     val = Nokogiri::XML::ElementContent[k]
 #     val[el.hash] = true if val.is_a?(Hash)
 #   end
 # end
 
-module Html2haml
-  # Converts HTML documents into Haml templates.
+module Html2fortitude
+  # Converts HTML documents into Fortitude templates.
   # Depends on [Nokogiri](http://nokogiri.org/) for HTML parsing.
   # If ERB conversion is being used, also depends on
   # [Erubis](http://www.kuwata-lab.com/erubis) to parse the ERB
@@ -115,7 +116,7 @@ module Html2haml
   class HTML
     # @param template [String, Nokogiri::Node] The HTML template to convert
     # @option options :erb [Boolean] (false) Whether or not to parse
-    #   ERB's `<%= %>` and `<% %>` into Haml's `=` and `-`
+    #   ERB's `<%= %>` and `<% %>` into Fortitude's `text()` and (standard code)
     # @option options :xhtml [Boolean] (false) Whether or not to parse
     #   the HTML strictly as XHTML
     def initialize(template, options = {})
@@ -128,10 +129,11 @@ module Html2haml
           template = template.read
         end
 
-        template = Haml::Util.check_encoding(template) {|msg, line| raise Haml::Error.new(msg, line)}
+        # TODO ageweke
+        # template = Haml::Util.check_encoding(template) {|msg, line| raise Haml::Error.new(msg, line)}
 
         if @options[:erb]
-          require 'html2haml/html/erb'
+          require 'html2fortitude/html/erb'
           template = ERB.compile(template)
         end
 
@@ -156,11 +158,11 @@ module Html2haml
     end
 
     # Processes the document and returns the result as a string
-    # containing the Haml template.
+    # containing the Fortitude template.
     def render
-      @template.to_haml(0, @options)
+      @template.to_fortitude(0, @options)
     end
-    alias_method :to_haml, :render
+    alias_method :to_fortitude, :render
 
     TEXT_REGEXP = /^(\s*).*$/
 
@@ -168,31 +170,31 @@ module Html2haml
     # @see Nokogiri
     # @private
     class ::Nokogiri::XML::Document
-      # @see Html2haml::HTML::Node#to_haml
-      def to_haml(tabs, options)
-        (children || []).inject('') {|s, c| s << c.to_haml(0, options)}
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
+        (children || []).inject('') {|s, c| s << c.to_fortitude(0, options)}
       end
     end
 
     class ::Nokogiri::XML::DocumentFragment
-      # @see Html2haml::HTML::Node#to_haml
-      def to_haml(tabs, options)
-        (children || []).inject('') {|s, c| s << c.to_haml(0, options)}
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
+        (children || []).inject('') {|s, c| s << c.to_fortitude(0, options)}
       end
     end
 
     class ::Nokogiri::XML::NodeSet
-      # @see Html2haml::HTML::Node#to_haml
-      def to_haml(tabs, options)
-        self.inject('') {|s, c| s << c.to_haml(tabs, options)}
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
+        self.inject('') {|s, c| s << c.to_fortitude(tabs, options)}
       end
     end
 
     # @see Nokogiri
     # @private
     class ::Nokogiri::XML::ProcessingInstruction
-      # @see Html2haml::HTML::Node#to_haml
-      def to_haml(tabs, options)
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
         "#{tabulate(tabs)}!!! XML\n"
       end
     end
@@ -200,8 +202,8 @@ module Html2haml
     # @see Nokogiri
     # @private
     class ::Nokogiri::XML::CDATA
-      # @see Html2haml::HTML::Node#to_haml
-      def to_haml(tabs, options)
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
         content = parse_text_with_interpolation(
           erb_to_interpolation(self.content, options), tabs + 1)
         "#{tabulate(tabs)}:cdata\n#{content}"
@@ -218,11 +220,12 @@ module Html2haml
     # @see Nokogiri
     # @private
     class ::Nokogiri::XML::DTD
-      # @see Html2haml::HTML::Node#to_haml
-      def to_haml(tabs, options)
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
         attrs = external_id.nil? ? ["", "", ""] :
           external_id.scan(/DTD\s+([^\s]+)\s*([^\s]*)\s*([^\s]*)\s*\/\//)[0]
-        raise Haml::SyntaxError.new("Invalid doctype") if attrs == nil
+        # TODO ageweke
+        # raise Haml::SyntaxError.new("Invalid doctype") if attrs == nil
 
         type, version, strictness = attrs.map { |a| a.downcase }
         if type == "html"
@@ -248,8 +251,8 @@ module Html2haml
     # @see Nokogiri
     # @private
     class ::Nokogiri::XML::Comment
-      # @see Html2haml::HTML::Node#to_haml
-      def to_haml(tabs, options)
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
         content = self.content
         if content =~ /\A(\[[^\]]+\])>(.*)<!\[endif\]\z/m
           condition = $1
@@ -267,24 +270,24 @@ module Html2haml
     # @see Nokogiri
     # @private
     class ::Nokogiri::XML::Element
-      # @see Html2haml::HTML::Node#to_haml
-      def to_haml(tabs, options)
-        return "" if converted_to_haml
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
+        return "" if converted_to_fortitude
 
         if name == "script" &&
             (attr_hash['type'].nil? || attr_hash['type'].to_s == "text/javascript") &&
             (attr_hash.keys - ['type']).empty?
-          return to_haml_filter(:javascript, tabs, options)
+          return to_fortitude_filter(:javascript, tabs, options)
         elsif name == "style" &&
             (attr_hash['type'].nil? || attr_hash['type'].to_s == "text/css") &&
             (attr_hash.keys - ['type']).empty?
-          return to_haml_filter(:css, tabs, options)
+          return to_fortitude_filter(:css, tabs, options)
         end
 
         output = tabulate(tabs)
-        if options[:erb] && HAML_TAGS.include?(name)
+        if options[:erb] && FORTITUDE_TAGS.include?(name)
           case name
-          when "haml_loud"
+          when "fortitude_loud"
             lines = CGI.unescapeHTML(inner_text).split("\n").
               map {|s| s.rstrip}.reject {|s| s.strip.empty?}
 
@@ -307,18 +310,18 @@ module Html2haml
               length = lines.map {|s| s.size}.max + 1
               lines.map! {|s| "%#{-length}s|" % s}
 
-              if next_sibling && next_sibling.is_a?(Nokogiri::XML::Element) && next_sibling.name == "haml_loud" &&
+              if next_sibling && next_sibling.is_a?(Nokogiri::XML::Element) && next_sibling.name == "fortitude_loud" &&
                   next_sibling.inner_text.split("\n").reject {|s| s.strip.empty?}.size > 1
                 lines << "-#"
               end
             end
             return lines.map {|s| output + s + "\n"}.join
-          when "haml_silent"
+          when "fortitude_silent"
             return CGI.unescapeHTML(inner_text).split("\n").map do |line|
               next "" if line.strip.empty?
               "#{output}- #{line.strip}\n"
             end.join
-          when "haml_block"
+          when "fortitude_block"
             return render_children("", tabs, options)
           end
         end
@@ -340,7 +343,7 @@ module Html2haml
         output << "%#{name}" unless name.to_s == 'div' &&
           (static_id?(options) ||
            static_classname?(options) &&
-           attr_hash['class'].to_s.split(' ').any?(&method(:haml_css_attr?)))
+           attr_hash['class'].to_s.split(' ').any?(&method(:fortitude_css_attr?)))
 
         if attr_hash
 
@@ -350,13 +353,13 @@ module Html2haml
           end
           if static_classname?(options)
             leftover = attr_hash['class'].to_s.split(' ').reject do |c|
-              next unless haml_css_attr?(c)
+              next unless fortitude_css_attr?(c)
               output << ".#{c}"
             end
             remove_attribute('class')
             set_attribute('class', leftover.join(' ')) unless leftover.empty?
           end
-          output << haml_attributes(options) if attr_hash.length > 0
+          output << fortitude_attributes(options) if attr_hash.length > 0
         end
 
         output << ">" if nuke_outer_whitespace
@@ -366,7 +369,7 @@ module Html2haml
           child = children.first
           if child.is_a?(::Nokogiri::XML::Text)
             if !child.to_s.include?("\n")
-              text = child.to_haml(tabs + 1, options)
+              text = child.to_fortitude(tabs + 1, options)
               return output + " " + text.lstrip.gsub(/^\\/, '') unless text.chomp.include?("\n") || text.empty?
               return output + "\n" + text
             elsif ["pre", "textarea"].include?(name) ||
@@ -374,8 +377,8 @@ module Html2haml
               return output + "\n#{tabulate(tabs + 1)}:preserve\n" +
                 inner_text.gsub(/^/, tabulate(tabs + 2))
             end
-          elsif child.is_a?(::Nokogiri::XML::Element) && child.name == "haml_loud"
-            return output + child.to_haml(tabs + 1, options).lstrip
+          elsif child.is_a?(::Nokogiri::XML::Element) && child.name == "fortitude_loud"
+            return output + child.to_fortitude(tabs + 1, options).lstrip
           end
         end
 
@@ -386,20 +389,20 @@ module Html2haml
 
       def render_children(so_far, tabs, options)
         (self.children || []).inject(so_far) do |output, child|
-          output + child.to_haml(tabs + 1, options)
+          output + child.to_fortitude(tabs + 1, options)
         end
       end
 
       def dynamic_attributes
-        #reject any attrs without <haml>
+        #reject any attrs without <fortitude>
         return @dynamic_attributes if @dynamic_attributes
 
-        @dynamic_attributes = attr_hash.select {|name, value| value =~ %r{<haml.*</haml} }
+        @dynamic_attributes = attr_hash.select {|name, value| value =~ %r{<fortitude.*</fortitude} }
         @dynamic_attributes.each do |name, value|
           fragment = Nokogiri::XML.fragment(CGI.unescapeHTML(value))
 
           # unwrap interpolation if we can:
-          if fragment.children.size == 1 && fragment.child.name == 'haml_loud'
+          if fragment.children.size == 1 && fragment.child.name == 'fortitude_loud'
             if attribute_value_can_be_bare_ruby?(fragment.text)
               value.replace(fragment.text.strip)
               next
@@ -407,7 +410,7 @@ module Html2haml
           end
 
           # turn erb into interpolations
-          fragment.css('haml_loud').each do |el|
+          fragment.css('fortitude_loud').each do |el|
             inner_text = el.text.strip
             next if inner_text == ""
             el.replace('#{' + inner_text + '}')
@@ -435,7 +438,7 @@ module Html2haml
       end
 
 
-      def to_haml_filter(filter, tabs, options)
+      def to_fortitude_filter(filter, tabs, options)
         content =
           if children.first && children.first.cdata?
             decode_entities(children.first.content_without_cdata_tokens)
@@ -450,7 +453,7 @@ module Html2haml
           content.gsub!(/^#{original_indent}/, tabulate(tabs + 1))
         else
           # Indentation is inconsistent. Strip whitespace from start and indent all
-          # to ensure valid Haml.
+          # to ensure valid Fortitude.
           content.lstrip!
           content.gsub!(/^/, tabulate(tabs + 1))
         end
@@ -481,22 +484,22 @@ module Html2haml
       end
 
       def static_id?(options)
-        static_attribute?('id', options) && haml_css_attr?(attr_hash['id'])
+        static_attribute?('id', options) && fortitude_css_attr?(attr_hash['id'])
       end
 
       def static_classname?(options)
         static_attribute?('class', options)
       end
 
-      def haml_css_attr?(attr)
+      def fortitude_css_attr?(attr)
         attr =~ /^[-:\w]+$/
       end
 
       # Returns a string representation of an attributes hash
       # that's prettier than that produced by Hash#inspect
-      def haml_attributes(options)
+      def fortitude_attributes(options)
         attrs = attr_hash.sort.map do |name, value|
-          haml_attribute_pair(name, value.to_s, options)
+          fortitude_attribute_pair(name, value.to_s, options)
         end
         if options[:html_style_attributes]
           "(#{attrs.join(' ')})"
@@ -506,7 +509,7 @@ module Html2haml
       end
 
       # Returns the string representation of a single attribute key value pair
-      def haml_attribute_pair(name, value, options)
+      def fortitude_attribute_pair(name, value, options)
         value = dynamic_attribute?(name, options) ? dynamic_attributes[name] : value.inspect
 
         if options[:html_style_attributes]

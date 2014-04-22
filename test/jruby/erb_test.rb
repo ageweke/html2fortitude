@@ -2,17 +2,17 @@
 class ErbTest
   def test_inline_erb
     assert_equal("%p= foo", render_erb("<p><%= foo %></p>"))
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 %p
   = foo
-HAML
+FORTITUDE
 <p><%= foo %>
 </p>
 HTML
   end
 
   def test_two_multiline_erb_loud_scripts
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 .blah
   = foo +          |
     bar.baz.bang + |
@@ -21,7 +21,7 @@ HTML
       bang     |
     end        |
   %p foo
-HAML
+FORTITUDE
 <div class="blah">
   <%=
     foo +

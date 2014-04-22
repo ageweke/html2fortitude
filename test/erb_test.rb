@@ -10,48 +10,48 @@ class ErbTest < MiniTest::Unit::TestCase
 
   def test_inline_erb
     assert_equal("%p= foo", render_erb("<p><%= foo %></p>"))
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 %p= foo
-HAML
+FORTITUDE
 <p><%= foo %>
 </p>
 HTML
   end
 
   def test_non_inline_erb
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 %p
   = foo
-HAML
+FORTITUDE
 <p>
   <%= foo %>
 </p>
 HTML
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 %p
   = foo
-HAML
+FORTITUDE
 <p>
   <%= foo %></p>
 HTML
   end
 
   def test_erb_in_cdata
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 :cdata
   Foo \#{bar} baz
-HAML
+FORTITUDE
 <![CDATA[Foo <%= bar %> baz]]>
 HTML
   end
 
   def test_erb_in_script
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 :javascript
   function foo() {
     return \#{foo.to_json};
   }
-HAML
+FORTITUDE
 <script type="text/javascript">
   function foo() {
     return <%= foo.to_json %>;
@@ -61,12 +61,12 @@ HTML
   end
 
   def test_erb_in_style
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 :css
   foo {
       bar: \#{"baz"};
   }
-HAML
+FORTITUDE
 <style type="text/css">
     foo {
         bar: <%= "baz" %>;
@@ -146,13 +146,13 @@ HTML
   end
 
   def test_multiline_erb_silent_script
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 .blah
   - foo
   - bar
   - baz
   %p foo
-HAML
+FORTITUDE
 <div class="blah">
   <%
     foo
@@ -165,13 +165,13 @@ ERB
   end
 
   def test_multiline_erb_loud_script
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 .blah
   = foo +            |
       bar.baz.bang + |
     baz              |
   %p foo
-HAML
+FORTITUDE
 <div class="blah">
   <%=
     foo +
@@ -184,13 +184,13 @@ ERB
   end
 
   def test_weirdly_indented_multiline_erb_loud_script
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 .blah
   = foo +          |
     bar.baz.bang + |
     baz            |
   %p foo
-HAML
+FORTITUDE
 <div class="blah">
   <%=
     foo +
@@ -203,7 +203,7 @@ ERB
   end
 
   def test_two_multiline_erb_loud_scripts
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 .blah
   = foo +          |
     bar.baz.bang + |
@@ -213,7 +213,7 @@ ERB
       bang     |
     end        |
   %p foo
-HAML
+FORTITUDE
 <div class="blah">
   <%=
     foo +
@@ -229,14 +229,14 @@ ERB
   end
 
   def test_multiline_then_single_line_erb_loud_scripts
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 .blah
   = foo +          |
     bar.baz.bang + |
     baz            |
   = foo.bar
   %p foo
-HAML
+FORTITUDE
 <div class="blah">
   <%=
     foo +
@@ -250,11 +250,11 @@ ERB
   end
 
   def test_multiline_erb_but_really_single_line
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 .blah
   = foo
   %p foo
-HAML
+FORTITUDE
 <div class="blah">
   <%=
     foo
@@ -267,10 +267,10 @@ ERB
   ### Block Parsing
 
   def test_block_parsing
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - foo do
   %p bar
-HAML
+FORTITUDE
 <% foo do %>
   <p>bar</p>
 <% end %>
@@ -278,10 +278,10 @@ ERB
   end
 
   def test_block_parsing_with_args
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - foo do |a, b, c|
   %p bar
-HAML
+FORTITUDE
 <% foo do |a, b, c| %>
   <p>bar</p>
 <% end %>
@@ -289,10 +289,10 @@ ERB
   end
 
   def test_block_parsing_with_equals
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 = foo do
   %p bar
-HAML
+FORTITUDE
 <%= foo do %>
   <p>bar</p>
 <% end %>
@@ -300,11 +300,11 @@ ERB
   end
 
   def test_block_parsing_with_modified_end
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - foo do
   blah
 - end.bip
-HAML
+FORTITUDE
 <% foo do %>
   blah
 <% end.bip %>
@@ -312,12 +312,12 @@ ERB
   end
 
   def test_block_parsing_with_modified_end_with_block
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - foo do
   blah
 - end.bip do
   brang
-HAML
+FORTITUDE
 <% foo do %>
   blah
 <% end.bip do %>
@@ -327,12 +327,12 @@ ERB
   end
 
   def test_multiline_block_opener
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - foo bar
 - baz bang
 - biddle do
   foo
-HAML
+FORTITUDE
 <% foo bar
   baz bang
   biddle do %>
@@ -342,14 +342,14 @@ ERB
   end
 
   def test_if_elsif_else_parsing
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - if foo
   %p bar
 - elsif bar.foo("zip")
   #bang baz
 - else
   %strong bibble
-HAML
+FORTITUDE
 <% if foo %>
   <p>bar</p>
 <% elsif bar.foo("zip") %>
@@ -361,7 +361,7 @@ ERB
   end
 
   def test_case_when_parsing
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - case foo.bar
 - when "bip"
   %p bip
@@ -369,7 +369,7 @@ ERB
   %p BOP
 - when bizzle.bang.boop.blip
   %em BIZZLE BANG BOOP BLIP
-HAML
+FORTITUDE
 <% case foo.bar %>
 <% when "bip" %>
   <p>bip</p>
@@ -380,7 +380,7 @@ HAML
 <% end %>
 ERB
 
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - case foo.bar
 - when "bip"
   %p bip
@@ -388,7 +388,7 @@ ERB
   %p BOP
 - when bizzle.bang.boop.blip
   %em BIZZLE BANG BOOP BLIP
-HAML
+FORTITUDE
 <% case foo.bar
    when "bip" %>
   <p>bip</p>
@@ -401,14 +401,14 @@ ERB
   end
 
   def test_begin_rescue_ensure
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - begin
   %p a
 - rescue FooException => e
   %p b
 - ensure
   %p c
-HAML
+FORTITUDE
 <% begin %>
   <p>a</p>
 <% rescue FooException => e %>
@@ -422,11 +422,11 @@ ERB
   # Regression
 
   def test_tag_inside_block
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 %table
   - foo.each do
     %tr
-HAML
+FORTITUDE
 <table>
   <% foo.each do %>
     <tr></tr>
@@ -436,28 +436,28 @@ ERB
   end
 
   def test_silent_inside_block_inside_tag
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 %table
   - foo.each do
-    - haml_puts "foo"
-HAML
+    - fortitude_puts "foo"
+FORTITUDE
 <table>
   <% foo.each do %>
-    <% haml_puts "foo" %>
+    <% fortitude_puts "foo" %>
   <% end %>
 </table>
 ERB
   end
 
   def test_commented_erb_should_not_cause_indentation
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 %title
-  html2haml and multiline titles
+  html2fortitude and multiline titles
 = # stylesheet_link_tag :first
 = stylesheet_link_tag 'another file'
-HAML
+FORTITUDE
 <title>
-  html2haml and multiline titles
+  html2fortitude and multiline titles
 </title>
 <%=# stylesheet_link_tag :first %>
 <%#= stylesheet_link_tag :second %>
@@ -469,15 +469,15 @@ ERB
   def test_can_parse_ruby_19_hashes_as_arguments
     erb =  "<%= foobar 'foo', {bar: 'baz'} %>"
     begin
-      Html2haml::HTML::ERB.new(erb)
+      Html2fortitude::HTML::ERB.new(erb)
     rescue
       flunk "should not raise an error"
     end
   end
 
   def test_should_wrap_in_silent
-    assert_equal(<<HTML.rstrip, Html2haml::HTML::ERB.new(<<ERB).src)
-<haml_silent> some_variable_or_function \n</haml_silent>
+    assert_equal(<<HTML.rstrip, Html2fortitude::HTML::ERB.new(<<ERB).src)
+<fortitude_silent> some_variable_or_function \n</fortitude_silent>
 HTML
 <% some_variable_or_function %>
 ERB
@@ -485,34 +485,34 @@ ERB
 
   #comment content is removed by erubis
   def test_should_wrap_process_comments_as_empty_lines
-    assert_equal(<<HTML.rstrip, Html2haml::HTML::ERB.new(<<ERB).src)
-<haml_silent>\n</haml_silent>
+    assert_equal(<<HTML.rstrip, Html2fortitude::HTML::ERB.new(<<ERB).src)
+<fortitude_silent>\n</fortitude_silent>
 HTML
 <%# some_variable_or_function %>
 ERB
   end
 
   def test_conditional_structure_in_argument
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 %span{:class => "\#{"active" if condition}"}
-HAML
+FORTITUDE
 <span class="<%= "active" if condition %>"></span>
 HTML
   end
 
   def test_method_call_without_brackets_in_argument
-    assert_equal(<<HAML.rstrip, render_erb(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<HTML))
 %span{:class => "\#{call_me maybe}"}
-HAML
+FORTITUDE
 <span class="<%= call_me maybe %>"></span>
 HTML
   end
 
   def test_multiline_erb_comment
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 - # comment
 %p hi
-HAML
+FORTITUDE
 <%
 # comment
 -%>
@@ -523,20 +523,20 @@ ERB
   ##
   # <%== %> is supposed to be equal to <%= raw %>
   def test_erb_with_double_equals
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 != link_to "https://github.com/haml/html2haml/issues/44"
-HAML
+FORTITUDE
 <%== link_to "https://github.com/haml/html2haml/issues/44" %>
 ERB
   end
 
   #https://github.com/haml/html2haml/issues/43
   def test_escaped_ruby_call_when_preceeded_by_text
-    assert_equal(<<HAML.rstrip, render_erb(<<ERB))
+    assert_equal(<<FORTITUDE.rstrip, render_erb(<<ERB))
 random text
 = form_tag(url: sessions_path) do
   = submit_tag "cdcd"
-HAML
+FORTITUDE
 random text
 <%= form_tag(url: sessions_path) do %>
    <%= submit_tag "cdcd" %>

@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class Html2HamlTest < MiniTest::Unit::TestCase
+class Html2FortitudeTest < MiniTest::Unit::TestCase
   def test_empty_render_should_remain_empty
     assert_equal '', render('')
   end
@@ -76,13 +76,13 @@ class Html2HamlTest < MiniTest::Unit::TestCase
   end
 
   def test_cdata
-    assert_equal(<<HAML.strip, render(<<HTML))
+    assert_equal(<<FORTITUDE.strip, render(<<HTML))
 %p
   :cdata
     <a foo="bar" baz="bang">
     <div id="foo">flop</div>
     </a>
-HAML
+FORTITUDE
 <p><![CDATA[
   <a foo="bar" baz="bang">
     <div id="foo">flop</div>
@@ -101,58 +101,58 @@ HTML
 
   def test_inline_comment
     assert_equal("/ foo", render("<!-- foo -->"))
-    assert_equal(<<HAML.strip, render(<<HTML))
+    assert_equal(<<FORTITUDE.strip, render(<<HTML))
 / foo
 %p bar
-HAML
+FORTITUDE
 <!-- foo -->
 <p>bar</p>
 HTML
   end
 
   def test_non_inline_comment
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 /
   Foo
   Bar
-HAML
+FORTITUDE
 <!-- Foo
 Bar -->
 HTML
   end
 
   def test_non_inline_text
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %p
   foo
-HAML
+FORTITUDE
 <p>
   foo
 </p>
 HTML
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %p
   foo
-HAML
+FORTITUDE
 <p>
   foo</p>
 HTML
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %p
   foo
-HAML
+FORTITUDE
 <p>foo
 </p>
 HTML
   end
 
   def test_script_tag
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 :javascript
   function foo() {
       return "12" & "13";
   }
-HAML
+FORTITUDE
 <script type="text/javascript">
     function foo() {
         return "12" & "13";
@@ -162,12 +162,12 @@ HTML
   end
 
   def test_script_tag_with_html_escaped_javascript
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 :javascript
   function foo() {
       return "12" & "13";
   }
-HAML
+FORTITUDE
 <script type="text/javascript">
     function foo() {
         return "12" &amp; "13";
@@ -177,12 +177,12 @@ HTML
   end
 
   def test_script_tag_with_cdata
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 :javascript
   function foo() {
     return "&amp;";
   }
-HAML
+FORTITUDE
 <script type="text/javascript">
   <![CDATA[
     function foo() {
@@ -194,13 +194,13 @@ HTML
   end
 
   def test_pre
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %pre
   :preserve
     foo
       bar
     baz
-HAML
+FORTITUDE
 <pre>foo
   bar
 baz</pre>
@@ -208,14 +208,14 @@ HTML
   end
 
   def test_pre_code
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %pre
   %code
     :preserve
       foo
         bar
       baz
-HAML
+FORTITUDE
 <pre><code>foo
   bar
 baz</code></pre>
@@ -223,12 +223,12 @@ HTML
   end
 
   def test_code_without_pre
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %code
   foo
   bar
   baz
-HAML
+FORTITUDE
 <code>foo
   bar
 baz</code>
@@ -236,11 +236,11 @@ HTML
   end
 
   def test_conditional_comment
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 /[if foo]
   bar
   baz
-HAML
+FORTITUDE
 <!--[if foo]>
   bar
   baz
@@ -249,12 +249,12 @@ HTML
   end
 
   def test_style_to_css_filter
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 :css
   foo {
       bar: baz;
   }
-HAML
+FORTITUDE
 <style type="text/css">
     foo {
         bar: baz;
@@ -264,14 +264,14 @@ HTML
   end
 
   def test_style_to_css_filter_with_following_content
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %head
   :css
     foo {
         bar: baz;
     }
 %body Hello
-HAML
+FORTITUDE
 <head>
   <style type="text/css">
       foo {
@@ -284,25 +284,25 @@ HTML
   end
 
   def test_style_to_css_filter_with_no_content
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 :css
-HAML
+FORTITUDE
 <style type="text/css"> </style>
 HTML
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 :css
-HAML
+FORTITUDE
 <style type="text/css"></style>
 HTML
   end
 
   def test_filter_with_inconsistent_indentation
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 :css
   foo {
       badly: indented;
   }
-HAML
+FORTITUDE
 <style type="text/css">
   foo {
     badly: indented;
@@ -312,9 +312,9 @@ HTML
   end
 
   def test_inline_conditional_comment
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 /[if foo] bar baz
-HAML
+FORTITUDE
 <!--[if foo]> bar baz <![endif]-->
 HTML
   end
@@ -332,7 +332,7 @@ HTML
   end
 
   def test_comma_post_tag
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 #foo
   %span> Foo
   ,
@@ -341,7 +341,7 @@ HTML
   %span> bar
   ,
   %span baz
-HAML
+FORTITUDE
 <div id="foo">
   <span>Foo</span>, <span>bar</span>
   Foo<span>bar</span>, <span>baz</span>
@@ -350,13 +350,13 @@ HTML
   end
 
   def test_comma_post_tag_with_text_before
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 #foo
   Batch
   = succeed "," do
     %span Foo
   %span Bar
-HAML
+FORTITUDE
 <div id="foo">
   Batch
   <span>Foo</span>, <span>Bar</span>
@@ -364,10 +364,10 @@ HAML
 HTML
   end
 
-  def test_haml_tags_should_be_on_new_line_after_tag_with_blank_content
+  def test_fortitude_tags_should_be_on_new_line_after_tag_with_blank_content
     xml  = "<weight> </weight>\n<pages>102</pages>"
-    haml = "%weight\n%pages 102"
-    assert_equal haml, render(xml)
+    fortitude = "%weight\n%pages 102"
+    assert_equal fortitude, render(xml)
   end
 
   # Encodings
@@ -375,9 +375,10 @@ HTML
   def test_encoding_error
     render("foo\nbar\nb\xFEaz".force_encoding("utf-8"))
     assert(false, "Expected exception")
-  rescue Haml::Error => e
-    assert_equal(3, e.line)
-    assert_match(/Invalid UTF-8 character/, e.message)
+    # TODO ageweke
+  # rescue Haml::Error => e
+  #   assert_equal(3, e.line)
+  #   assert_match(/Invalid UTF-8 character/, e.message)
   end
 
   def test_ascii_incompatible_encoding_error
@@ -385,9 +386,10 @@ HTML
     template[9] = "\xFE".force_encoding("utf-16le")
     render(template)
     assert(false, "Expected exception")
-  rescue Haml::Error => e
-    assert_equal(3, e.line)
-    assert_match(/Invalid UTF-16LE character/, e.message)
+    # TODO ageweke
+  # rescue Haml::Error => e
+  #   assert_equal(3, e.line)
+  #   assert_match(/Invalid UTF-16LE character/, e.message)
   end
 
   # Regression Tests
@@ -400,14 +402,14 @@ HTML
   end
 
   def test_html_document_without_doctype
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 !!!
 %html
   %head
     %title Hello
   %body
     %p Hello
-HAML
+FORTITUDE
 <html>
 <head>
   <title>Hello</title>

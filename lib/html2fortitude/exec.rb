@@ -2,10 +2,10 @@ require 'optparse'
 require 'fileutils'
 require 'rbconfig'
 
-module Html2haml
-  # This module handles the Html2haml executable.
+module Html2fortitude
+  # This module handles the Html2fortitude executable.
   module Exec
-    # An abstract class that encapsulates the executable code for the Html2haml executable.
+    # An abstract class that encapsulates the executable code for the Html2fortitude executable.
     # It's split into a base class and a subclass for historic reasons: this previously
     # was used by all the executables in the Haml project, before Html2haml was moved
     # into its own gem.
@@ -61,8 +61,7 @@ module Html2haml
       # @return [String] The line number
       def get_line(exception)
         # SyntaxErrors have weird line reporting
-        # when there's trailing whitespace,
-        # which there is for Haml documents.
+        # when there's trailing whitespace.
         return (exception.message.scan(/:(\d+)/).first || ["??"]).first if exception.is_a?(::SyntaxError)
         (exception.backtrace[0].scan(/:(\d+)/).first || ["??"]).first
       end
@@ -97,7 +96,7 @@ module Html2haml
         end
 
         opts.on_tail("-v", "--version", "Print version") do
-          puts("html2haml #{::Html2haml::VERSION}")
+          puts("html2fortitude #{::Html2fortitude::VERSION}")
           exit
         end
       end
@@ -183,8 +182,8 @@ MESSAGE
       end
     end
 
-    # The `html2haml` executable.
-    class HTML2Haml < Generic
+    # The `html2fortitude` executable.
+    class HTML2Fortitude < Generic
       # @param args [Array<String>] The command-line arguments
       def initialize(args)
         super
@@ -196,9 +195,9 @@ MESSAGE
       # @param opts [OptionParser]
       def set_opts(opts)
         opts.banner = <<END
-Usage: html2haml [options] [INPUT] [OUTPUT]
+Usage: html2fortitude [options] [INPUT] [OUTPUT]
 
-Description: Transforms an HTML file into corresponding Haml code.
+Description: Transforms an HTML file into corresponding Fortitude code.
 
 Options:
 END
@@ -233,7 +232,7 @@ END
       def process_result
         super
 
-        require 'html2haml/html'
+        require 'html2fortitude/html'
 
         input = @options[:input]
         output = @options[:output]
@@ -242,9 +241,9 @@ END
         @module_opts[:erb] &&= @options[:no_erb] != false
 
         output.write(HTML.new(input, @module_opts).render)
-      rescue ::Haml::Error => e
-        raise "#{e.is_a?(::Haml::SyntaxError) ? "Syntax error" : "Error"} on line " +
-          "#{get_line e}: #{e.message}"
+      # rescue ::Haml::Error => e
+      #   raise "#{e.is_a?(::Haml::SyntaxError) ? "Syntax error" : "Error"} on line " +
+      #     "#{get_line e}: #{e.message}"
       rescue LoadError => err
         handle_load_error(err)
       end

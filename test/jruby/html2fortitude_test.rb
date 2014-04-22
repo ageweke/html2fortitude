@@ -1,4 +1,4 @@
-class Html2HamlTest
+class Html2FortitudeTest
 
   def test_doctype
     empty_body = "\n%html\n  %head\n  %body"
@@ -15,25 +15,25 @@ class Html2HamlTest
   end
 
   def test_xhtml_strict_doctype
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 !!! Strict
 %html
   %head
   %body
-HAML
+FORTITUDE
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 HTML
   end
 
   def test_html_document_without_doctype
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %html
   %head
     %title Hello
   %body
     %p Hello
-HAML
+FORTITUDE
 <html>
 <head>
   <title>Hello</title>
@@ -50,7 +50,7 @@ HTML
   end
 
   def test_style_to_css_filter_with_following_content
-    assert_equal(<<HAML.rstrip, render(<<HTML))
+    assert_equal(<<FORTITUDE.rstrip, render(<<HTML))
 %head
   :css
     foo {
@@ -58,7 +58,7 @@ HTML
     }
 %body
   Hello
-HAML
+FORTITUDE
 <head>
   <style type="text/css">
       foo {
