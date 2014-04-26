@@ -78,7 +78,7 @@ module Nokogiri
         text.split("\n").map do |line|
           line.strip!
           # TODO ageweke
-          # "#{tabulate(tabs)}#{'\\' if Haml::Parser::SPECIAL_CHARACTERS.include?(line[0])}#{line}\n"
+          "#{tabulate(tabs)}text \"#{line}\"\n"
         end.join
       end
     end
