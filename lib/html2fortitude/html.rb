@@ -71,14 +71,15 @@ module Nokogiri
         parse_text_with_interpolation(uninterp(text), tabs)
       end
 
+      def escape_text(text)
+        text.gsub(/"/, "\\\"")
+      end
+
       def parse_text_with_interpolation(text, tabs)
-        text.strip!
         return "" if text.empty?
 
         text.split("\n").map do |line|
-          line.strip!
-          # TODO ageweke
-          "#{tabulate(tabs)}text \"#{line}\"\n"
+          "#{tabulate(tabs)}text \"#{escape_text(line)}\"\n"
         end.join
       end
     end
@@ -319,7 +320,7 @@ module Html2fortitude
           when "fortitude_silent"
             return CGI.unescapeHTML(inner_text).split("\n").map do |line|
               next "" if line.strip.empty?
-              "#{output}- #{line.strip}\n"
+              "#{output}#{line.strip}\n"
             end.join
           when "fortitude_block"
             return render_children("", tabs, options)
