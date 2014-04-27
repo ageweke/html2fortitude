@@ -60,4 +60,10 @@ text(ghi)
 text %{
 world}})
   end
+
+  it "should eliminate whitespace before a tag" do
+    expect(h2f_content(%{bar
+<p/>})).to eq(%{text "bar"
+p})
+  end
 end

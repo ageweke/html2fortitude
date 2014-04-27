@@ -21,8 +21,13 @@ module Nokogiri
       # @param tabs [Fixnum] The indentation level of the resulting Fortitude.
       # @option options (see Html2fortitude::HTML#initialize)
       def to_fortitude(tabs, options)
-        return "" if converted_to_fortitude || to_s.strip.empty?
-        text = uninterp(self.to_s)
+        return "" if converted_to_fortitude
+
+        as_string = self.to_s
+        return "" if as_string.strip.empty? && as_string !~ /[\r\n]/
+        return as_string if as_string.strip.empty?
+
+        text = uninterp(as_string)
         text = text.chomp if self.next && self.next.is_a?(::Nokogiri::XML::Element)
         return parse_text_with_interpolation(text, tabs)
       end
@@ -272,6 +277,7 @@ module Html2fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
 
+=begin
         if name == "script" &&
             (attr_hash['type'].nil? || attr_hash['type'].to_s == "text/javascript") &&
             (attr_hash.keys - ['type']).empty?
@@ -281,6 +287,7 @@ module Html2fortitude
             (attr_hash.keys - ['type']).empty?
           return to_fortitude_filter(:css, tabs, options)
         end
+=end
 
         output = tabulate(tabs)
         if options[:erb] && FORTITUDE_TAGS.include?(name)
@@ -296,7 +303,7 @@ module Html2fortitude
               "#{output}#{line.strip}\n"
             end.join
           when "fortitude_block"
-            return render_children("", tabs, options)
+            return render_children("", tabs, options).rstrip + "\n#{tabulate(tabs)}end"
           end
         end
 
