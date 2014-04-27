@@ -2,6 +2,7 @@ require 'cgi'
 require 'nokogiri'
 require 'html2fortitude/html/erb'
 require 'active_support/core_ext/object'
+require 'fortitude/rails/helpers'
 
 # Html2fortitude monkeypatches various Nokogiri classes
 # to add methods for conversion to Fortitude.
@@ -79,6 +80,14 @@ module Nokogiri
 
       def parse_text_with_interpolation(text, tabs)
         return "" if text.empty?
+
+        if (! previous) || (previous && previous.is_a?(::Nokogiri::XML::Element))
+          text = text.lstrip
+        end
+
+        if (! self.next) || (self.next && self.next.is_a?(::Nokogiri::XML::Element))
+          text = text.rstrip
+        end
 
         "#{tabulate(tabs)}text #{quoted_string_for_text(text)}\n"
       end
@@ -283,13 +292,15 @@ module Html2fortitude
     # @see Nokogiri
     # @private
     class ::Nokogiri::XML::Element
-      OUTPUTTING_HELPERS = %w{render}
+      BUILT_IN_RENDERING_HELPERS = %w{render}
 
       def can_skip_text_or_rawtext_prefix?(code)
         return false if code =~ /[\r\n]/mi
         return false if code =~ /;/mi
         method = $1 if code =~ /^\s*([A-Za-z_][A-Za-z0-9_]*[\!\?\=]?)[\s\(]/
-        method && OUTPUTTING_HELPERS.include?(method.strip.downcase)
+        options = Fortitude::Rails::Helpers.helper_options(method.strip.downcase) if method
+        (options && options[:transform] == :output_return_value) ||
+          (method && BUILT_IN_RENDERING_HELPERS.include?(method.strip.downcase))
       end
 
       # @see Html2fortitude::HTML::Node#to_fortitude
@@ -354,7 +365,7 @@ module Html2fortitude
         output << ">" if nuke_outer_whitespace
 
         if children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Text)
-          direct_content = quoted_string_for_text(child.to_s)
+          direct_content = quoted_string_for_text(child.to_s.strip)
           # output << " "
           # output << quoted_string_for_text(child.to_s)
           render_children = false
@@ -381,6 +392,8 @@ module Html2fortitude
           output << tabulate(tabs + 1)
           output << children_output
           output << "\n#{tabulate(tabs)}}\n"
+        else
+          output << "\n"
         end
 
         output
