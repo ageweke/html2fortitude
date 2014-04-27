@@ -311,27 +311,8 @@ module Html2fortitude
           end
         end
 
-        output << "%#{name}" unless name.to_s == 'div' &&
-          (static_id?(options) ||
-           static_classname?(options) &&
-           attr_hash['class'].to_s.split(' ').any?(&method(:fortitude_css_attr?)))
-
-        if attr_hash
-
-          if static_id?(options)
-            output << "##{attr_hash['id'].to_s}"
-            remove_attribute('id')
-          end
-          if static_classname?(options)
-            leftover = attr_hash['class'].to_s.split(' ').reject do |c|
-              next unless fortitude_css_attr?(c)
-              output << ".#{c}"
-            end
-            remove_attribute('class')
-            set_attribute('class', leftover.join(' ')) unless leftover.empty?
-          end
-          output << fortitude_attributes(options) if attr_hash.length > 0
-        end
+        output << "#{name}"
+        output << " #{fortitude_attributes(options)}" if attr_hash && attr_hash.length > 0
 
         output << ">" if nuke_outer_whitespace
         output << "/" if to_xhtml.end_with?("/>")
@@ -472,30 +453,18 @@ module Html2fortitude
         attrs = attr_hash.sort.map do |name, value|
           fortitude_attribute_pair(name, value.to_s, options)
         end
-        if options[:html_style_attributes]
-          "(#{attrs.join(' ')})"
-        else
-          "{#{attrs.join(', ')}}"
-        end
+        "#{attrs.join(', ')}"
       end
 
       # Returns the string representation of a single attribute key value pair
       def fortitude_attribute_pair(name, value, options)
         value = dynamic_attribute?(name, options) ? dynamic_attributes[name] : value.inspect
 
-        if options[:html_style_attributes]
-          return "#{name}=#{value}"
-        end
-
         if name.index(/\W/)
-          return "#{name.inspect} => #{value}"
+          "#{name.inspect} => #{value}"
+        else
+          ":#{name} => #{value}"
         end
-
-        if options[:ruby19_style_attributes]
-          return "#{name}: #{value}"
-        end
-
-        ":#{name} => #{value}"
       end
     end
   end
