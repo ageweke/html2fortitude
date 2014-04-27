@@ -298,6 +298,7 @@ module Html2fortitude
         return false if code =~ /[\r\n]/mi
         return false if code =~ /;/mi
         method = $1 if code =~ /^\s*([A-Za-z_][A-Za-z0-9_]*[\!\?\=]?)[\s\(]/
+        method ||= $1 if code =~ /^\s*([A-Za-z_][A-Za-z0-9_]*[\!\?\=]?)$/
         options = Fortitude::Rails::Helpers.helper_options(method.strip.downcase) if method
         (options && options[:transform] == :output_return_value) ||
           (method && BUILT_IN_RENDERING_HELPERS.include?(method.strip.downcase))
