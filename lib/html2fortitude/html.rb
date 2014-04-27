@@ -23,20 +23,6 @@ module Nokogiri
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude || to_s.strip.empty?
         text = uninterp(self.to_s)
-        node = next_sibling
-        while node.is_a?(::Nokogiri::XML::Element) && node.name == "fortitude_loud"
-          node.converted_to_fortitude = true
-          text << '#{' <<
-            CGI.unescapeHTML(node.inner_text).gsub(/\n\s*/, ' ').strip << '}'
-
-          if node.next_sibling.is_a?(::Nokogiri::XML::Text)
-            node = node.next_sibling
-            text << uninterp(node.to_s)
-            node.converted_to_fortitude = true
-          end
-
-          node = node.next_sibling
-        end
         return parse_text_with_interpolation(text, tabs)
       end
 
@@ -71,16 +57,24 @@ module Nokogiri
         parse_text_with_interpolation(uninterp(text), tabs)
       end
 
-      def escape_text(text)
-        text.gsub(/"/, "\\\"")
+      def escape_single_line_text(text)
+        text.gsub(/"/) { |m| "\\" + m }
+      end
+
+      def escape_multiline_text(text)
+        text.gsub(/\}/, '\\}')
       end
 
       def parse_text_with_interpolation(text, tabs)
         return "" if text.empty?
 
-        text.split("\n").map do |line|
-          "#{tabulate(tabs)}text \"#{escape_text(line)}\"\n"
-        end.join
+        if text =~ /[\r\n]/
+          text = "%{#{escape_multiline_text(text)}}"
+        else
+          text = "\"#{escape_single_line_text(text)}\""
+        end
+
+        "#{tabulate(tabs)}text #{text}\n"
       end
     end
   end
@@ -293,9 +287,9 @@ module Html2fortitude
               map {|s| s.rstrip}.reject {|s| s.strip.empty?}
 
             if attribute("raw")
-              lines.first.gsub!(/^[ \t]*/, "!= ")
+              lines.first.gsub!(/^[ \t]*/, "rawtext(")
             else
-              lines.first.gsub!(/^[ \t]*/, "= ")
+              lines.first.gsub!(/^[ \t]*/, "text(")
             end
 
             if lines.size > 1 # Multiline script block
@@ -316,6 +310,7 @@ module Html2fortitude
                 lines << "-#"
               end
             end
+            lines.last << ")"
             return lines.map {|s| output + s + "\n"}.join
           when "fortitude_silent"
             return CGI.unescapeHTML(inner_text).split("\n").map do |line|
