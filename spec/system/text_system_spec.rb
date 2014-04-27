@@ -36,4 +36,28 @@ text " world"})
 text(abc)
 text " world"})
   end
+
+  it "should allow multiline dynamic content in text" do
+    expect(h2f_content(%{hello, <% abc
+def(a, "b")
+ghi %>
+world})).to eq(%{text "hello, "
+abc
+def(a, "b")
+ghi
+text %{
+world}})
+  end
+
+  it "should allow loud multiline dynamic content in text" do
+    expect(h2f_content(%{hello, <%= abc
+def(a, "b")
+ghi %>
+world})).to eq(%{text "hello, "
+abc
+def(a, "b")
+text(ghi)
+text %{
+world}})
+  end
 end
