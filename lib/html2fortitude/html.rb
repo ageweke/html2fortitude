@@ -23,6 +23,7 @@ module Nokogiri
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude || to_s.strip.empty?
         text = uninterp(self.to_s)
+        text = text.chomp if self.next && self.next.is_a?(::Nokogiri::XML::Element)
         return parse_text_with_interpolation(text, tabs)
       end
 
@@ -333,7 +334,7 @@ module Html2fortitude
           end
           output
         elsif has_children
-          output = (render_children("#{output} {" + "\n", tabs, options) + "\n#{tabulate(tabs)}}")
+          output = (render_children("#{output} {\n", tabs, options) + "\n#{tabulate(tabs)}}")
         end
 
         output
