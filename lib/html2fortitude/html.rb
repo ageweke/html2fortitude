@@ -217,7 +217,8 @@ module Html2fortitude
     class ::Nokogiri::XML::ProcessingInstruction
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
-        "#{tabulate(tabs)}!!! XML\n"
+        # "#{tabulate(tabs)}!!! XML\n"
+        "#{tabulate(tabs)}rawtext(\"#{self.to_s}\")\n"
       end
     end
 
@@ -244,29 +245,7 @@ module Html2fortitude
     class ::Nokogiri::XML::DTD
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
-        attrs = external_id.nil? ? ["", "", ""] :
-          external_id.scan(/DTD\s+([^\s]+)\s*([^\s]*)\s*([^\s]*)\s*\/\//)[0]
-        # TODO ageweke
-        # raise Haml::SyntaxError.new("Invalid doctype") if attrs == nil
-
-        type, version, strictness = attrs.map { |a| a.downcase }
-        if type == "html"
-          version = ""
-          strictness = "strict" if strictness == ""
-        end
-
-        if version == "1.0" || version.empty?
-          version = nil
-        end
-
-        if strictness == 'transitional' || strictness.empty?
-          strictness = nil
-        end
-
-        version = " #{version.capitalize}" if version
-        strictness = " #{strictness.capitalize}" if strictness
-
-        "#{tabulate(tabs)}!!!#{version}#{strictness}\n"
+        "#{tabulate(tabs)}doctype!\n"
       end
     end
 
@@ -338,10 +317,14 @@ module Html2fortitude
               "#{output}#{line.strip}\n"
             end.join
           when "fortitude_block"
-            return render_children("", tabs, options).rstrip + "\n#{tabulate(tabs)}end\n"
+            needs_coda = true unless self.next && self.next.is_a?(::Nokogiri::XML::Element) &&
+              self.next.name == 'fortitude_silent' && self.next.inner_text =~ /^\s*els(e|if)\s*$/i
+            coda = if needs_coda then "\n#{tabulate(tabs)}end\n" else "\n" end
+            return render_children("", tabs, options).rstrip + coda
           end
         end
 
+=begin
         if self.next && self.next.text? && self.next.content =~ /\A[^\s]/
           if self.previous.nil? || self.previous.text? &&
               (self.previous.content =~ /[^\s]\Z/ ||
@@ -355,6 +338,7 @@ module Html2fortitude
             self.next.content = ""
           end
         end
+=end
 
         output << "#{name}"
 
@@ -363,7 +347,7 @@ module Html2fortitude
         render_children = true
         # output << "#{fortitude_attributes(options)}" if attr_hash && attr_hash.length > 0
 
-        output << ">" if nuke_outer_whitespace
+        # output << ">" if nuke_outer_whitespace
 
         if children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Text)
           direct_content = quoted_string_for_text(child.to_s.strip)
