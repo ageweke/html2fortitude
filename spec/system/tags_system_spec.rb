@@ -37,4 +37,16 @@ describe "html2fortitude tags handling" do
     pending "This doesn't work; html2haml's <haml_loud> system fouls up Nokogiri too badly here"
     expect(h2f_content(%{<p foo<%= bar %>baz="bar"/>})).to eq(%{p "foo\#{bar}baz" => "bar"})
   end
+
+  it "should render a tag containing another tag correctly" do
+    expect(h2f_content(%{<p><br/></p>})).to eq(%{p {
+  br
+}})
+  end
+
+  it "should render a tag containing text correctly" do
+    expect(h2f_content(%{<p>hello, world</p>})).to eq(%{p {
+  text "hello, world"
+}})
+  end
 end

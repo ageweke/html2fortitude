@@ -315,9 +315,12 @@ module Html2fortitude
         output << " #{fortitude_attributes(options)}" if attr_hash && attr_hash.length > 0
 
         output << ">" if nuke_outer_whitespace
-        output << "/" if to_xhtml.end_with?("/>")
+        # output << "/" if to_xhtml.end_with?("/>")
 
-        if children && children.size == 1
+        has_children = children && children.size >= 1
+        output << " {" if has_children
+
+        if children && children.size == 1 && false
           child = children.first
           if child.is_a?(::Nokogiri::XML::Text)
             if !child.to_s.include?("\n")
@@ -334,7 +337,9 @@ module Html2fortitude
           end
         end
 
-        render_children(output + "\n", tabs, options)
+        out = render_children(output + "\n", tabs, options)
+        out << "}" if has_children
+        out
       end
 
       private
