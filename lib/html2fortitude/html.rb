@@ -68,13 +68,15 @@ module Nokogiri
       def parse_text_with_interpolation(text, tabs)
         return "" if text.empty?
 
+        "#{tabulate(tabs)}text #{quoted_string_for_text(text)}\n"
+      end
+
+      def quoted_string_for_text(text)
         if text =~ /[\r\n]/
           text = "%{#{escape_multiline_text(text)}}"
         else
           text = "\"#{escape_single_line_text(text)}\""
         end
-
-        "#{tabulate(tabs)}text #{text}\n"
       end
     end
   end
@@ -315,31 +317,26 @@ module Html2fortitude
         output << " #{fortitude_attributes(options)}" if attr_hash && attr_hash.length > 0
 
         output << ">" if nuke_outer_whitespace
-        # output << "/" if to_xhtml.end_with?("/>")
 
         has_children = children && children.size >= 1
-        output << " {" if has_children
 
-        if children && children.size == 1 && false
-          child = children.first
-          if child.is_a?(::Nokogiri::XML::Text)
-            if !child.to_s.include?("\n")
-              text = child.to_fortitude(tabs + 1, options)
-              return output + " " + text.lstrip.gsub(/^\\/, '') unless text.chomp.include?("\n") || text.empty?
-              return output + "\n" + text
-            elsif ["pre", "textarea"].include?(name) ||
-                (name == "code" && parent.is_a?(::Nokogiri::XML::Element) && parent.name == "pre")
-              return output + "\n#{tabulate(tabs + 1)}:preserve\n" +
-                inner_text.gsub(/^/, tabulate(tabs + 2))
-            end
-          elsif child.is_a?(::Nokogiri::XML::Element) && child.name == "fortitude_loud"
-            return output + child.to_fortitude(tabs + 1, options).lstrip
+        can_inline = children && children.size == 1 &&
+          (children.first.is_a?(::Nokogiri::XML::Text) ||
+            (children.first.is_a?(::Nokogiri::XML::Element) && children.first.name == "fortitude_loud"))
+
+        if can_inline
+          if children.first.is_a?(::Nokogiri::XML::Text)
+            output << " "
+            output << quoted_string_for_text(child.to_s)
+          else
+            output << child.to_fortitude(tabs + 1, options).lstrip
           end
+          output
+        elsif has_children
+          output = (render_children("#{output} {" + "\n", tabs, options) + "\n#{tabulate(tabs)}}")
         end
 
-        out = render_children(output + "\n", tabs, options)
-        out << "}" if has_children
-        out
+        output
       end
 
       private

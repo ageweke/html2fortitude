@@ -45,8 +45,12 @@ describe "html2fortitude tags handling" do
   end
 
   it "should render a tag containing text correctly" do
-    expect(h2f_content(%{<p>hello, world</p>})).to eq(%{p {
-  text "hello, world"
-}})
+    expect(h2f_content(%{<p>hello, world</p>})).to eq(%{p "hello, world"})
+  end
+
+  it "should render a tag containing text with newlines correctly" do
+    expect(h2f_content(%{<p>hello,
+world</p>})).to eq(%{p %{hello,
+world}})
   end
 end
