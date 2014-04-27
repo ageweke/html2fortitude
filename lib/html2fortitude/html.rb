@@ -432,7 +432,7 @@ module Html2fortitude
         return true if ruby.sexp_type == :str   #regular string
         return true if ruby.sexp_type == :dstr  #string with interpolation
         return true if ruby.sexp_type == :lit   #symbol
-        return true if ruby.sexp_type == :call && ruby.mass == 1 #local var or method with no params
+        return true if ruby.sexp_type == :call  #local var or method
 
         false
       end
