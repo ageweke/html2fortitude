@@ -1,6 +1,7 @@
 require 'cgi'
 require 'nokogiri'
 require 'html2fortitude/html/erb'
+require 'active_support/core_ext/object'
 
 # Html2fortitude monkeypatches various Nokogiri classes
 # to add methods for conversion to Fortitude.
@@ -25,7 +26,11 @@ module Nokogiri
 
         as_string = self.to_s
         return "" if as_string.strip.empty? && as_string !~ /[\r\n]/mi
-        return as_string if as_string.strip.empty?
+        if as_string.strip.empty?
+          as_string = $1 if as_string =~ /^(.*?[\r\n])[ \t]+$/
+          return as_string
+        end
+        # return as_string if as_string.strip.empty?
 
         text = uninterp(as_string)
         text = text.chomp if self.next && self.next.is_a?(::Nokogiri::XML::Element)
@@ -327,25 +332,42 @@ module Html2fortitude
         end
 
         output << "#{name}"
-        output << " #{fortitude_attributes(options)}" if attr_hash && attr_hash.length > 0
+
+        attributes_text = fortitude_attributes(options) if attr_hash && attr_hash.length > 0
+        direct_content = nil
+        render_children = true
+        # output << "#{fortitude_attributes(options)}" if attr_hash && attr_hash.length > 0
 
         output << ">" if nuke_outer_whitespace
 
-        has_children = children && children.size >= 1
-
-        can_inline = children && children.size == 1 &&
-          (children.first.is_a?(::Nokogiri::XML::Text) ||
-            (children.first.is_a?(::Nokogiri::XML::Element) && children.first.name == "fortitude_loud"))
-
-        if children.first.is_a?(::Nokogiri::XML::Text)
-          output << " "
-          output << quoted_string_for_text(child.to_s)
-        elsif children.first.is_a?(::Nokogiri::XML::Element) && children.first.name == "fortitude_loud" &&
+        if children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Text)
+          direct_content = quoted_string_for_text(child.to_s)
+          # output << " "
+          # output << quoted_string_for_text(child.to_s)
+          render_children = false
+        elsif children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Element) &&
+          children.first.name == "fortitude_loud" &&
           code_can_be_used_as_a_method_argument?(child.inner_text)
 
-          output << "(" + child.inner_text.strip + ")"
-        elsif has_children
-          output = (render_children("#{output} {", tabs, options) + "#{tabulate(tabs)}}")
+          direct_content = "#{child.inner_text.strip}"
+          render_children = false
+          # output << "(" + child.inner_text.strip + ")"
+        end
+
+        if attributes_text && direct_content
+          output << "(#{direct_content}, #{attributes_text})"
+        elsif direct_content
+          output << "(#{direct_content})"
+        elsif attributes_text
+          output << "(#{attributes_text})"
+        end
+
+        if render_children && children && children.size >= 1
+          children_output = render_children("", tabs, options).strip
+          output << " {\n"
+          output << tabulate(tabs + 1)
+          output << children_output
+          output << "\n#{tabulate(tabs)}}"
         end
 
         output
@@ -356,6 +378,7 @@ module Html2fortitude
       def render_children(so_far, tabs, options)
         (self.children || []).inject(so_far) do |output, child|
           output + child.to_fortitude(tabs + 1, options)
+          # output + "|#{child.node_type}#{child.to_fortitude(tabs + 1, options)}|"
         end
       end
 

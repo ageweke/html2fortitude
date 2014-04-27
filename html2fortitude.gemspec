@@ -17,6 +17,7 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = '>= 1.9.2'
 
+  gem.add_dependency 'activesupport', '>= 3.0.0'
   gem.add_dependency 'nokogiri', '~> 1.6.0'
   gem.add_dependency 'erubis', '~> 2.7.0'
   gem.add_dependency 'ruby_parser', '~> 3.4.1'
