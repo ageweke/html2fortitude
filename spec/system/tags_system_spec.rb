@@ -29,8 +29,12 @@ describe "html2fortitude tags handling" do
   end
 
   it "should render attributes that have a dynamic key properly" do
+    pending "This doesn't work; html2haml's <haml_loud> system fouls up Nokogiri too badly here"
     expect(h2f_content(%{<p <%= foo %>="bar"/>})).to eq(%{p foo => "bar"})
   end
 
-  it "should render attributes that have a mix of dynamic and static content for their keys properly"
+  it "should render attributes that have a mix of dynamic and static content for their keys properly" do
+    pending "This doesn't work; html2haml's <haml_loud> system fouls up Nokogiri too badly here"
+    expect(h2f_content(%{<p foo<%= bar %>baz="bar"/>})).to eq(%{p "foo\#{bar}baz" => "bar"})
+  end
 end
