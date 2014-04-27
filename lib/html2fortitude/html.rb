@@ -283,11 +283,19 @@ module Html2fortitude
     # @see Nokogiri
     # @private
     class ::Nokogiri::XML::Element
+      OUTPUTTING_HELPERS = %w{render}
+
+      def can_skip_text_or_rawtext_prefix?(code)
+        return false if code =~ /[\r\n]/mi
+        return false if code =~ /;/mi
+        method = $1 if code =~ /^\s*([A-Za-z_][A-Za-z0-9_]*[\!\?\=]?)[\s\(]/
+        method && OUTPUTTING_HELPERS.include?(method.strip.downcase)
+      end
+
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
 
-=begin
         if name == "script" &&
             (attr_hash['type'].nil? || attr_hash['type'].to_s == "text/javascript") &&
             (attr_hash.keys - ['type']).empty?
@@ -297,7 +305,6 @@ module Html2fortitude
             (attr_hash.keys - ['type']).empty?
           return to_fortitude_filter(:css, tabs, options)
         end
-=end
 
         output = tabulate(tabs)
         if options[:erb] && FORTITUDE_TAGS.include?(name)
@@ -305,7 +312,13 @@ module Html2fortitude
           when "fortitude_loud"
             lines = CGI.unescapeHTML(inner_text).split("\n").map { |s| s.strip }
             command = if attribute("raw") then "rawtext" else "text" end
-            lines[-1] = "#{command}(" + lines[-1] + ")"
+
+            if lines.length == 1 && can_skip_text_or_rawtext_prefix?(lines.first)
+              # OK, we're good
+            else
+              lines[-1] = "#{command}(" + lines[-1] + ")"
+            end
+
             return lines.map {|s| output + s + "\n"}.join
           when "fortitude_silent"
             return CGI.unescapeHTML(inner_text).split("\n").map do |line|
@@ -367,7 +380,7 @@ module Html2fortitude
           output << " {\n"
           output << tabulate(tabs + 1)
           output << children_output
-          output << "\n#{tabulate(tabs)}}"
+          output << "\n#{tabulate(tabs)}}\n"
         end
 
         output
@@ -450,7 +463,7 @@ module Html2fortitude
         content.rstrip!
         content << "\n"
 
-        "#{tabulate(tabs)}:#{filter}\n#{content}"
+        "#{tabulate(tabs)}#{filter} {\n#{content.rstrip}\n#{tabulate(tabs)}}"
       end
 
       # TODO: this method is utterly awful, find a better way to decode HTML entities.
