@@ -53,4 +53,26 @@ describe "html2fortitude tags handling" do
 world</p>})).to eq(%{p %{hello,
 world}})
   end
+
+  it "should render a tag with a single child of loud output correctly" do
+    expect(h2f_content(%{<p><%= foo %></p>})).to eq(%{p(foo)})
+  end
+
+  it "should render a tag with a single child of multiline loud output correctly" do
+    expect(h2f_content(%{<p><%=
+x = 123
+x += 200
+x
+%></p>})).to eq(%{p {
+  x = 123
+  x += 200
+  text(x)
+}})
+  end
+
+  it "should render a tag with a single child of loud output with a semicolon correctly" do
+    expect(h2f_content(%{<p><%= x = 123; x += 200; x %></p>})).to eq(%{p {
+  text(x = 123; x += 200; x)
+}})
+  end
 end

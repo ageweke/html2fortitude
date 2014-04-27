@@ -45,8 +45,7 @@ world})).to eq(%{text "hello, "
 abc
 def(a, "b")
 ghi
-text %{
-world}})
+text "world"})
   end
 
   it "should allow loud multiline dynamic content in text" do
@@ -57,8 +56,7 @@ world})).to eq(%{text "hello, "
 abc
 def(a, "b")
 text(ghi)
-text %{
-world}})
+text "world"})
   end
 
   it "should eliminate whitespace before a tag" do

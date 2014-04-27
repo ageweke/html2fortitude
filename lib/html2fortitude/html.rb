@@ -24,11 +24,12 @@ module Nokogiri
         return "" if converted_to_fortitude
 
         as_string = self.to_s
-        return "" if as_string.strip.empty? && as_string !~ /[\r\n]/
+        return "" if as_string.strip.empty? && as_string !~ /[\r\n]/mi
         return as_string if as_string.strip.empty?
 
         text = uninterp(as_string)
         text = text.chomp if self.next && self.next.is_a?(::Nokogiri::XML::Element)
+        text = $1 if text =~ /^[\r\n](.*)$/mi && self.previous && self.previous.is_a?(::Nokogiri::XML::Element)
         return parse_text_with_interpolation(text, tabs)
       end
 
@@ -75,6 +76,10 @@ module Nokogiri
         return "" if text.empty?
 
         "#{tabulate(tabs)}text #{quoted_string_for_text(text)}\n"
+      end
+
+      def code_can_be_used_as_a_method_argument?(code)
+        code !~ /[\r\n;]/
       end
 
       def quoted_string_for_text(text)
@@ -303,7 +308,7 @@ module Html2fortitude
               "#{output}#{line.strip}\n"
             end.join
           when "fortitude_block"
-            return render_children("", tabs, options).rstrip + "\n#{tabulate(tabs)}end"
+            return render_children("", tabs, options).rstrip + "\n#{tabulate(tabs)}end\n"
           end
         end
 
@@ -332,16 +337,15 @@ module Html2fortitude
           (children.first.is_a?(::Nokogiri::XML::Text) ||
             (children.first.is_a?(::Nokogiri::XML::Element) && children.first.name == "fortitude_loud"))
 
-        if can_inline
-          if children.first.is_a?(::Nokogiri::XML::Text)
-            output << " "
-            output << quoted_string_for_text(child.to_s)
-          else
-            output << child.to_fortitude(tabs + 1, options).lstrip
-          end
-          output
+        if children.first.is_a?(::Nokogiri::XML::Text)
+          output << " "
+          output << quoted_string_for_text(child.to_s)
+        elsif children.first.is_a?(::Nokogiri::XML::Element) && children.first.name == "fortitude_loud" &&
+          code_can_be_used_as_a_method_argument?(child.inner_text)
+
+          output << "(" + child.inner_text.strip + ")"
         elsif has_children
-          output = (render_children("#{output} {\n", tabs, options) + "\n#{tabulate(tabs)}}")
+          output = (render_children("#{output} {", tabs, options) + "#{tabulate(tabs)}}")
         end
 
         output
