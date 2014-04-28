@@ -44,14 +44,21 @@ module Nokogiri
       def erb_to_interpolation(text, options)
         return text unless options[:erb]
         text = CGI.escapeHTML(uninterp(text))
-        %w[<fortitude_loud> </fortitude_loud>].each {|str| text.gsub!(CGI.escapeHTML(str), str)}
+        %w[<fortitude_loud> </fortitude_loud>].each do |str|
+          text.gsub!(CGI.escapeHTML(str), str)
+        end
         ::Nokogiri::XML.fragment(text).children.inject("") do |str, elem|
           if elem.is_a?(::Nokogiri::XML::Text)
             str + CGI.unescapeHTML(elem.to_s)
           else # <fortitude_loud> element
+            extract_needs_from!(elem.inner_text.strip, options[:needs])
             str + '#{' + CGI.unescapeHTML(elem.inner_text.strip) + '}'
           end
         end
+      end
+
+      def extract_needs_from!(text, array)
+        text.scan(/@([\w\d]+)/) { |variable_name| array << variable_name.first }
       end
 
       def tabulate(tabs)
@@ -143,8 +150,6 @@ module Html2fortitude
     #   the HTML strictly as XHTML
     def initialize(template, options = {})
       options.assert_valid_keys(:erb, :class_name, :superclass, :method, :assigns, :do_end, :new_style_hashes)
-      # @options = options
-      # $stderr.puts "OPTIONS: #{@options.inspect}"
 
       if template.is_a? Nokogiri::XML::Node
         @template = template
@@ -154,6 +159,7 @@ module Html2fortitude
           template = ERB.compile(template)
         end
 
+        @erb = options[:erb]
         @class_name = options[:class_name]
         @superclass = options[:superclass]
         @method = options[:method]
@@ -186,6 +192,7 @@ module Html2fortitude
     # containing the Fortitude template.
     def render
       to_fortitude_options = {
+        :erb => @erb,
         :needs => [ ],
         :assign_reference => (@assigns == :instance_variables ? :instance_variable : :method),
         :do_end => @do_end,
@@ -194,15 +201,16 @@ module Html2fortitude
 
       content_text = @template.to_fortitude(2, to_fortitude_options)
 
-      return <<-EOS
-class #{@class_name} < #{@superclass}
-  #{needs_declarations(to_fortitude_options[:needs])}
+      out = "class #{@class_name} < #{@superclass}\n"
+      needs_text = needs_declarations(to_fortitude_options[:needs])
+      out << "#{needs_text}\n  \n" if needs_text
 
-  def #{@method}
-#{content_text.rstrip}
-  end
-end
-EOS
+      out << "  def #{@method}\n"
+      out << "#{content_text.rstrip}"
+      out << "  end\n"
+      out << "end\n"
+
+      out
     end
 
     private
@@ -212,14 +220,14 @@ EOS
       needs = needs.map { |n| n.to_s.strip.downcase }.uniq.compact.sort
       return nil if needs.empty?
 
-      out = "needs "
+      out = ""
       out << needs.map do |need|
         if [ :needs_defaulted_to_nil, :instance_variables ].include?(@assigns)
-          ":#{need} => nil"
+          "  needs :#{need} => nil"
         else
-          ":#{need}"
+          "  needs :#{need}"
         end
-      end.join(", ")
+      end.join("\n")
       out
     end
 
@@ -233,21 +241,14 @@ EOS
     class ::Nokogiri::XML::Document
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
-        (children || []).inject('') {|s, c| s << c.to_fortitude(0, options)}
+        (children || []).inject('') {|s, c| s << c.to_fortitude(tabs, options)}
       end
     end
 
     class ::Nokogiri::XML::DocumentFragment
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
-        (children || []).inject('') {|s, c| s << c.to_fortitude(0, options)}
-        # (children || []).inject('') do |s, c|
-        #   d = c.to_fortitude(0, options)
-        #   if d.encoding != Encoding::UTF_8
-        #     $stderr.puts "FAIL: #to_fortitude returned #{d.length} bytes in #{d.encoding} FROM: #{c.inspect}"
-        #   end
-        #   s << d
-        # end
+        (children || []).inject('') {|s, c| s << c.to_fortitude(tabs, options)}
       end
     end
 
@@ -330,7 +331,7 @@ EOS
       end
 
       # @see Html2fortitude::HTML::Node#to_fortitude
-      def to_fortitude_t(tabs, options)
+      def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
 
         if name == "script" &&
@@ -348,6 +349,8 @@ EOS
           case name
           when "fortitude_loud"
             lines = CGI.unescapeHTML(inner_text).split("\n").map { |s| s.strip }
+            extract_needs_from!(lines.join("\n"), options[:needs])
+
             command = if attribute("raw") then "rawtext" else "text" end
 
             if lines.length == 1 && can_skip_text_or_rawtext_prefix?(lines.first)
@@ -356,9 +359,7 @@ EOS
               lines[-1] = "#{command}(" + lines[-1] + ")"
             end
 
-            out = lines.map {|s| output + s + "\n"}.join
-            raise "kaboom: #{out.encoding}" unless out.encoding == Encoding::UTF_8
-            return out
+            return lines.map {|s| output + s + "\n"}.join
           when "fortitude_silent"
             return CGI.unescapeHTML(inner_text).split("\n").map do |line|
               next "" if line.strip.empty?
@@ -368,25 +369,10 @@ EOS
             needs_coda = true unless self.next && self.next.is_a?(::Nokogiri::XML::Element) &&
               self.next.name == 'fortitude_silent' && self.next.inner_text =~ /^\s*els(e|if)\s*$/i
             coda = if needs_coda then "\n#{tabulate(tabs)}end\n" else "\n" end
-            return render_children("", tabs, options).rstrip + coda
+            children_text = render_children("", tabs, options).rstrip
+            return children_text + coda
           end
         end
-
-=begin
-        if self.next && self.next.text? && self.next.content =~ /\A[^\s]/
-          if self.previous.nil? || self.previous.text? &&
-              (self.previous.content =~ /[^\s]\Z/ ||
-               self.previous.content =~ /\A\s*\Z/ && self.previous.previous.nil?)
-            nuke_outer_whitespace = true
-          else
-            output << "= succeed #{self.next.content.slice!(/\A[^\s]+/).dump} do\n"
-            tabs += 1
-            output << tabulate(tabs)
-            #empty the text node since it was inserted into the block
-            self.next.content = ""
-          end
-        end
-=end
 
         output << "#{name}"
 
@@ -399,17 +385,16 @@ EOS
 
         if children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Text)
           direct_content = quoted_string_for_text(child.to_s.strip)
-          # output << " "
-          # output << quoted_string_for_text(child.to_s)
           render_children = false
         elsif children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Element) &&
           children.first.name == "fortitude_loud" &&
           code_can_be_used_as_a_method_argument?(child.inner_text)
 
+          extract_needs_from!(child.inner_text, options[:needs])
+
           direct_content = "#{child.inner_text.strip}"
           direct_content = "(#{direct_content})" if attributes_text && direct_content =~ /^\s*[A-Za-z_][A-Za-z0-9_]*[\!\?\=]?\s+\S/
           render_children = false
-          # output << "(" + child.inner_text.strip + ")"
         end
 
         if attributes_text && direct_content
@@ -442,7 +427,7 @@ EOS
         end
       end
 
-      def dynamic_attributes
+      def dynamic_attributes(options)
         #reject any attrs without <fortitude>
         return @dynamic_attributes if @dynamic_attributes
 
@@ -452,6 +437,7 @@ EOS
 
           # unwrap interpolation if we can:
           if fragment.children.size == 1 && fragment.child.name == 'fortitude_loud'
+            extract_needs_from!(fragment.text, options[:needs])
             if attribute_value_can_be_bare_ruby?(fragment.text)
               value.replace(fragment.text.strip)
               next
@@ -462,6 +448,7 @@ EOS
           fragment.css('fortitude_loud').each do |el|
             inner_text = el.text.strip
             next if inner_text == ""
+            extract_needs_from!(inner_text, options[:needs])
             el.replace('#{' + inner_text + '}')
           end
 
@@ -515,6 +502,7 @@ EOS
 
       # TODO: this method is utterly awful, find a better way to decode HTML entities.
       def decode_entities(str)
+        return str
         str.gsub(/&[\S]+;/) do |entity|
           begin
             [Nokogiri::HTML::NamedCharacters[entity[1..-2]]].pack("C")
@@ -529,7 +517,7 @@ EOS
       end
 
       def dynamic_attribute?(name, options)
-        options[:erb] and dynamic_attributes.key?(name)
+        options[:erb] and dynamic_attributes(options).key?(name)
       end
 
       def static_id?(options)
@@ -555,7 +543,7 @@ EOS
 
       # Returns the string representation of a single attribute key value pair
       def fortitude_attribute_pair(name, value, options)
-        value = dynamic_attribute?(name, options) ? dynamic_attributes[name] : value.inspect
+        value = dynamic_attribute?(name, options) ? dynamic_attributes(options)[name] : value.inspect
 
         if name.index(/\W/)
           "#{name.inspect} => #{value}"
