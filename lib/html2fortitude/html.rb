@@ -558,7 +558,11 @@ module Html2fortitude
         if name.index(/\W/)
           "#{name.inspect} => #{value}"
         else
-          ":#{name} => #{value}"
+          if options[:new_style_hashes]
+            "#{name}: #{value}"
+          else
+            ":#{name} => #{value}"
+          end
         end
       end
     end
