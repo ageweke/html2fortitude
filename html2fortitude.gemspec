@@ -21,6 +21,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'nokogiri', '~> 1.6.0'
   gem.add_dependency 'erubis', '~> 2.7.0'
   gem.add_dependency 'ruby_parser', '~> 3.4.1'
+  gem.add_dependency 'trollop', '~> 2.0.0'
   # TODO ageweke: eliminate
   gem.add_dependency 'haml', '~> 4.0.0'
   gem.add_development_dependency 'simplecov', '~> 0.7.1'

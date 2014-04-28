@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require File.expand_path(File.dirname(__FILE__) + '/../lib/html2fortitude')
-require 'html2fortitude/exec'
+require 'html2fortitude/run'
 
-opts = Html2fortitude::Exec::HTML2Fortitude.new(ARGV)
-opts.parse!
+runner = Html2fortitude::Run.new(ARGV)
+runner.run!

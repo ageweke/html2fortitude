@@ -142,22 +142,25 @@ module Html2fortitude
     # @option options :xhtml [Boolean] (false) Whether or not to parse
     #   the HTML strictly as XHTML
     def initialize(template, options = {})
-      @options = options
+      options.assert_valid_keys(:erb, :class_name, :superclass, :method, :assigns, :do_end, :new_style_hashes)
+      # @options = options
+      # $stderr.puts "OPTIONS: #{@options.inspect}"
 
       if template.is_a? Nokogiri::XML::Node
         @template = template
       else
-        if template.is_a? IO
-          template = template.read
-        end
-
-        # TODO ageweke
-        # template = Haml::Util.check_encoding(template) {|msg, line| raise Haml::Error.new(msg, line)}
-
-        if @options[:erb]
+        if options[:erb]
           require 'html2fortitude/html/erb'
           template = ERB.compile(template)
         end
+
+        @class_name = options[:class_name]
+        @superclass = options[:superclass]
+        @method = options[:method]
+        @assigns = options[:assigns].to_sym
+
+        @do_end = options[:do_end]
+        @new_style_hashes = options[:new_style_hashes]
 
         if template =~ /^\s*<!DOCTYPE|<html/i
           return @template = Nokogiri.HTML(template)
@@ -182,8 +185,44 @@ module Html2fortitude
     # Processes the document and returns the result as a string
     # containing the Fortitude template.
     def render
-      @template.to_fortitude(0, @options)
+      to_fortitude_options = {
+        :needs => [ ],
+        :assign_reference => (@assigns == :instance_variables ? :instance_variable : :method),
+        :do_end => @do_end,
+        :new_style_hashes => @new_style_hashes
+      }
+
+      content_text = @template.to_fortitude(2, to_fortitude_options)
+
+      return <<-EOS
+class #{@class_name} < #{@superclass}
+  #{needs_declarations(to_fortitude_options[:needs])}
+
+  def #{@method}
+#{content_text.rstrip}
+  end
+end
+EOS
     end
+
+    private
+    def needs_declarations(needs)
+      return nil if @assigns == :no_needs
+
+      needs = needs.map { |n| n.to_s.strip.downcase }.uniq.compact.sort
+      return nil if needs.empty?
+
+      out = "needs "
+      out << needs.map do |need|
+        if [ :needs_defaulted_to_nil, :instance_variables ].include?(@assigns)
+          ":#{need} => nil"
+        else
+          ":#{need}"
+        end
+      end.join(", ")
+      out
+    end
+
     alias_method :to_fortitude, :render
 
     TEXT_REGEXP = /^(\s*).*$/
@@ -202,6 +241,13 @@ module Html2fortitude
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
         (children || []).inject('') {|s, c| s << c.to_fortitude(0, options)}
+        # (children || []).inject('') do |s, c|
+        #   d = c.to_fortitude(0, options)
+        #   if d.encoding != Encoding::UTF_8
+        #     $stderr.puts "FAIL: #to_fortitude returned #{d.length} bytes in #{d.encoding} FROM: #{c.inspect}"
+        #   end
+        #   s << d
+        # end
       end
     end
 
@@ -284,7 +330,7 @@ module Html2fortitude
       end
 
       # @see Html2fortitude::HTML::Node#to_fortitude
-      def to_fortitude(tabs, options)
+      def to_fortitude_t(tabs, options)
         return "" if converted_to_fortitude
 
         if name == "script" &&
@@ -310,7 +356,9 @@ module Html2fortitude
               lines[-1] = "#{command}(" + lines[-1] + ")"
             end
 
-            return lines.map {|s| output + s + "\n"}.join
+            out = lines.map {|s| output + s + "\n"}.join
+            raise "kaboom: #{out.encoding}" unless out.encoding == Encoding::UTF_8
+            return out
           when "fortitude_silent"
             return CGI.unescapeHTML(inner_text).split("\n").map do |line|
               next "" if line.strip.empty?
