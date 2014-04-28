@@ -51,14 +51,23 @@ module Nokogiri
           if elem.is_a?(::Nokogiri::XML::Text)
             str + CGI.unescapeHTML(elem.to_s)
           else # <fortitude_loud> element
-            extract_needs_from!(elem.inner_text.strip, options[:needs])
-            str + '#{' + CGI.unescapeHTML(elem.inner_text.strip) + '}'
+            data = extract_needs_from!(elem.inner_text.strip, options)
+            str + '#{' + CGI.unescapeHTML(data) + '}'
           end
         end
       end
 
-      def extract_needs_from!(text, array)
-        text.scan(/@([\w\d]+)/) { |variable_name| array << variable_name.first }
+      def extract_needs_from!(text, options)
+        text.gsub(/@[\w\d]+/) do |variable_name|
+          without_at = variable_name[1..-1]
+          options[:needs] << without_at
+
+          if options[:assigns] == :instance_variables
+            variable_name
+          else
+            without_at
+          end
+        end
       end
 
       def tabulate(tabs)
@@ -348,8 +357,8 @@ module Html2fortitude
         if options[:erb] && FORTITUDE_TAGS.include?(name)
           case name
           when "fortitude_loud"
-            lines = CGI.unescapeHTML(inner_text).split("\n").map { |s| s.strip }
-            extract_needs_from!(lines.join("\n"), options[:needs])
+            t = extract_needs_from!(CGI.unescapeHTML(inner_text), options)
+            lines = t.split("\n").map { |s| s.strip }
 
             command = if attribute("raw") then "rawtext" else "text" end
 
@@ -361,7 +370,8 @@ module Html2fortitude
 
             return lines.map {|s| output + s + "\n"}.join
           when "fortitude_silent"
-            return CGI.unescapeHTML(inner_text).split("\n").map do |line|
+            t = extract_needs_from!(CGI.unescapeHTML(inner_text), options)
+            return t.split("\n").map do |line|
               next "" if line.strip.empty?
               "#{output}#{line.strip}\n"
             end.join
@@ -390,9 +400,9 @@ module Html2fortitude
           children.first.name == "fortitude_loud" &&
           code_can_be_used_as_a_method_argument?(child.inner_text)
 
-          extract_needs_from!(child.inner_text, options[:needs])
+          it = extract_needs_from!(child.inner_text, options)
 
-          direct_content = "#{child.inner_text.strip}"
+          direct_content = "#{it.strip}"
           direct_content = "(#{direct_content})" if attributes_text && direct_content =~ /^\s*[A-Za-z_][A-Za-z0-9_]*[\!\?\=]?\s+\S/
           render_children = false
         end
@@ -437,9 +447,9 @@ module Html2fortitude
 
           # unwrap interpolation if we can:
           if fragment.children.size == 1 && fragment.child.name == 'fortitude_loud'
-            extract_needs_from!(fragment.text, options[:needs])
-            if attribute_value_can_be_bare_ruby?(fragment.text)
-              value.replace(fragment.text.strip)
+            t = extract_needs_from!(fragment.text, options)
+            if attribute_value_can_be_bare_ruby?(t)
+              value.replace(t.strip)
               next
             end
           end
@@ -448,7 +458,7 @@ module Html2fortitude
           fragment.css('fortitude_loud').each do |el|
             inner_text = el.text.strip
             next if inner_text == ""
-            extract_needs_from!(inner_text, options[:needs])
+            inner_text = extract_needs_from!(inner_text, options)
             el.replace('#{' + inner_text + '}')
           end
 
