@@ -359,6 +359,7 @@ module Html2fortitude
           code_can_be_used_as_a_method_argument?(child.inner_text)
 
           direct_content = "#{child.inner_text.strip}"
+          direct_content = "(#{direct_content})" if attributes_text && direct_content =~ /^\s*[A-Za-z_][A-Za-z0-9_]*[\!\?\=]?\s+\S/
           render_children = false
           # output << "(" + child.inner_text.strip + ")"
         end
