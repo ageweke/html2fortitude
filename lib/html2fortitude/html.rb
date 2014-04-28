@@ -47,6 +47,25 @@ module Nokogiri
         %w[<fortitude_loud> </fortitude_loud>].each do |str|
           text.gsub!(CGI.escapeHTML(str), str)
         end
+
+        %w[fortitude_silent fortitude_block].each do |fake_tag_name|
+          while text =~ %r{^(.*?)&lt;#{fake_tag_name}&gt;(.*?)&lt;/#{fake_tag_name}&gt;(.*)$}mi
+            before, middle, after = $1, $2, $3
+            text = before +
+              %{
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# &lt;%
+} +
+              middle.split(/\n/).map { |l| "# #{l}" }.join("\n") +
+              %{
+# %&gt;
+} +
+              after
+          end
+        end
+
         ::Nokogiri::XML.fragment(text).children.inject("") do |str, elem|
           if elem.is_a?(::Nokogiri::XML::Text)
             str + CGI.unescapeHTML(elem.to_s)
@@ -211,7 +230,7 @@ module Html2fortitude
       out << "#{needs_text}\n  \n" if needs_text
 
       out << "  def #{@method}\n"
-      out << "#{content_text.rstrip}"
+      out << "#{content_text.rstrip}\n"
       out << "  end\n"
       out << "end\n"
 
