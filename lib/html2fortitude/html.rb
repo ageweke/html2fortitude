@@ -108,10 +108,6 @@ module Nokogiri
         "#{tabulate(tabs)}text #{quoted_string_for_text(text)}\n"
       end
 
-      def code_can_be_used_as_a_method_argument?(code)
-        code !~ /[\r\n;]/
-      end
-
       def quoted_string_for_text(text)
         if text =~ /[\r\n]/
           text = "%{#{escape_multiline_text(text)}}"
@@ -339,6 +335,10 @@ module Html2fortitude
           (method && BUILT_IN_RENDERING_HELPERS.include?(method.strip.downcase))
       end
 
+      def code_can_be_used_as_a_method_argument?(code)
+        code !~ /[\r\n;]/ && (! can_skip_text_or_rawtext_prefix?(code))
+      end
+
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
@@ -417,10 +417,10 @@ module Html2fortitude
 
         if render_children && children && children.size >= 1
           children_output = render_children("", tabs, options).strip
-          output << " {\n"
+          output << " #{element_block_start(options)}\n"
           output << tabulate(tabs + 1)
           output << children_output
-          output << "\n#{tabulate(tabs)}}\n"
+          output << "\n#{tabulate(tabs)}#{element_block_end(options)}\n"
         else
           output << "\n"
         end
@@ -507,7 +507,23 @@ module Html2fortitude
         content.rstrip!
         content << "\n"
 
-        "#{tabulate(tabs)}#{filter} {\n#{content.rstrip}\n#{tabulate(tabs)}}"
+        "#{tabulate(tabs)}#{filter} #{element_block_start(options)}\n#{content.rstrip}\n#{tabulate(tabs)}#{element_block_end(options)}"
+      end
+
+      def element_block_start(options)
+        if options[:do_end]
+          "do"
+        else
+          "{"
+        end
+      end
+
+      def element_block_end(options)
+        if options[:do_end]
+          "end"
+        else
+          "}"
+        end
       end
 
       # TODO: this method is utterly awful, find a better way to decode HTML entities.
