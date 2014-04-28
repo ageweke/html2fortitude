@@ -62,7 +62,7 @@ module Nokogiri
           without_at = variable_name[1..-1]
           options[:needs] << without_at
 
-          if options[:assigns] == :instance_variables
+          if options[:assign_reference] == :instance_variable
             variable_name
           else
             without_at
