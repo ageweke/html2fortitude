@@ -31,7 +31,6 @@ module Nokogiri
           as_string = $1 if as_string =~ /^(.*?[\r\n])[ \t]+$/
           return as_string
         end
-        # return as_string if as_string.strip.empty?
 
         text = uninterp(as_string)
         text = text.chomp if self.next && self.next.is_a?(::Nokogiri::XML::Element)
@@ -113,16 +112,16 @@ module Nokogiri
         text.gsub(/\}/, '\\}')
       end
 
+      def can_elide_text_against?(previous_or_next)
+        (! previous_or_next) ||
+          (previous_or_next.is_a?(::Nokogiri::XML::Element) && (! FORTITUDE_TAGS.include?(previous_or_next.name)))
+      end
+
       def parse_text_with_interpolation(text, tabs)
         return "" if text.empty?
 
-        if (! previous) || (previous && previous.is_a?(::Nokogiri::XML::Element))
-          text = text.lstrip
-        end
-
-        if (! self.next) || (self.next && self.next.is_a?(::Nokogiri::XML::Element))
-          text = text.rstrip
-        end
+        text = text.lstrip if can_elide_text_against?(previous)
+        text = text.rstrip if can_elide_text_against?(self.next)
 
         "#{tabulate(tabs)}text #{quoted_string_for_text(text)}\n"
       end
