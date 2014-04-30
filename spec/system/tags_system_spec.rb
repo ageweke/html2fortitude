@@ -5,27 +5,27 @@ describe "html2fortitude tags handling" do
   end
 
   it "should render a very simple tag with attributes" do
-    expect(h2f_content(%{<p foo="bar"/>})).to eq(%{p :foo => "bar"})
+    expect(h2f_content(%{<p foo="bar"/>})).to eq(%{p(:foo => "bar")})
   end
 
   it "should render multiple attributes properly" do
     result = h2f_content(%{<p foo="bar" bar="baz"/>})
 
-    expect(result).to match(%r{^p :[a-z].*"$})
-    expect(result).to match(%r{ :foo => "bar"})
-    expect(result).to match(%r{ :bar => "baz"})
+    expect(result).to match(%r{^p\(:[a-z].*"\)$})
+    expect(result).to match(%r{:foo => "bar"})
+    expect(result).to match(%r{:bar => "baz"})
   end
 
   it "should render attributes that aren't simple Symbols properly" do
-    expect(h2f_content(%{<p foo-bar="baz"/>})).to eq(%{p "foo-bar" => "baz"})
+    expect(h2f_content(%{<p foo-bar="baz"/>})).to eq(%{p("foo-bar" => "baz")})
   end
 
   it "should render attributes that have dynamic values properly" do
-    expect(h2f_content(%{<p foo="<%= bar %>"})).to eq(%{p :foo => bar})
+    expect(h2f_content(%{<p foo="<%= bar %>"})).to eq(%{p(:foo => bar)})
   end
 
   it "should render attributes that have a mix of dynamic and static content for their values properly" do
-    expect(h2f_content(%{<p foo="bar <%= baz %> quux"/>})).to eq(%{p :foo => "bar \#{baz} quux"})
+    expect(h2f_content(%{<p foo="bar <%= baz %> quux"/>})).to eq(%{p(:foo => "bar \#{baz} quux")})
   end
 
   it "should render attributes that have a dynamic key properly" do
@@ -45,13 +45,13 @@ describe "html2fortitude tags handling" do
   end
 
   it "should render a tag containing text correctly" do
-    expect(h2f_content(%{<p>hello, world</p>})).to eq(%{p "hello, world"})
+    expect(h2f_content(%{<p>hello, world</p>})).to eq(%{p("hello, world")})
   end
 
   it "should render a tag containing text with newlines correctly" do
     expect(h2f_content(%{<p>hello,
-world</p>})).to eq(%{p %{hello,
-world}})
+world</p>})).to eq(%{p(%{hello,
+world})})
   end
 
   it "should render a tag with a single child of loud output correctly" do

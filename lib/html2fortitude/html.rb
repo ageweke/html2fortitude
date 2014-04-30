@@ -184,10 +184,10 @@ module Html2fortitude
         end
 
         @erb = options[:erb]
-        @class_name = options[:class_name]
-        @superclass = options[:superclass]
-        @method = options[:method]
-        @assigns = options[:assigns].to_sym
+        @class_name = options[:class_name] || raise(ArgumentError, "You must specify a class name")
+        @superclass = options[:superclass] || raise(ArgumentError, "You must specify a superclass")
+        @method = options[:method] || raise(ArgumentError, "You must specify a method name")
+        @assigns = (options[:assigns] || raise(ArgumentError, "You must specify :assigns")).to_sym
 
         @do_end = options[:do_end]
         @new_style_hashes = options[:new_style_hashes]
