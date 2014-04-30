@@ -45,6 +45,7 @@ world})).to eq(%{text "hello, "
 abc
 def(a, "b")
 ghi
+
 text "world"})
   end
 
@@ -56,6 +57,7 @@ world})).to eq(%{text "hello, "
 abc
 def(a, "b")
 text(ghi)
+
 text "world"})
   end
 
