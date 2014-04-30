@@ -5,6 +5,7 @@ bar
 <p class="baz"/>
 <% end %>})).to eq(%{foo do
   text "bar"
+
   p(:class => "baz")
 end})
   end
@@ -16,6 +17,7 @@ bar
 <% end %>
 hello, world})).to eq(%{foo do
   text "bar"
+
   p(:class => "baz")
 end
 text "hello, world"})

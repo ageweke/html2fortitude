@@ -41,8 +41,6 @@ module Nokogiri
         if text =~ /\A((?:\s*[\r\n])*)(.*?)((?:\s*[\r\n])*)\Z/mi
           prefix, middle, suffix = $1, $2, $3
           middle = parse_text_with_interpolation(middle, tabs)
-          prefix = "" if can_elide_text_against?(self.previous)
-          suffix = "" if can_elide_text_against?(self.next)
           return prefix + middle + suffix
         else
           return parse_text_with_interpolation(text, tabs)

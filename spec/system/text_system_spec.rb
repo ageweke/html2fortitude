@@ -63,7 +63,23 @@ text "world"})
 
   it "should eliminate whitespace before a tag" do
     expect(h2f_content(%{bar
+
+
 <p/>})).to eq(%{text "bar"
+
+
+
 p})
+  end
+
+
+  it "should eliminate whitespace after a tag" do
+    expect(h2f_content(%{<p/>
+
+
+bar})).to eq(%{p
+
+
+text "bar"})
   end
 end
