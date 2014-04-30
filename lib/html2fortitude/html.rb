@@ -28,7 +28,7 @@ module Nokogiri
         as_string = self.to_s
         return "" if as_string.strip.empty? && as_string !~ /[\r\n]/mi
         if as_string.strip.empty?
-          as_string = $1 if as_string =~ /^(.*?[\r\n])[ \t]+$/
+          as_string = $1 if as_string =~ /^(.*?[\r\n])[ \t]+$/mi
           return as_string
         end
 
