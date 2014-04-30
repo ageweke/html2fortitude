@@ -372,6 +372,10 @@ module Html2fortitude
         node && node.is_a?(::Nokogiri::XML::Text) && node.to_s =~ /^\s*[\r\n]/
       end
 
+      def is_loud_block!
+        @is_loud_block = true
+      end
+
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
@@ -395,7 +399,14 @@ module Html2fortitude
 
             command = if attribute("raw") then "rawtext" else "text" end
 
-            if lines.length == 1 && can_skip_text_or_rawtext_prefix?(lines.first)
+            # Handle this case:
+            # <%= form_for(@user) do |f| %>
+            #   <%= f.whatever %>
+            # <% end %>
+            if self.next && self.next.is_a?(::Nokogiri::XML::Element) && self.next.name == 'fortitude_block'
+              self.next.is_loud_block!
+              lines[-1] = "#{command}(" + lines[-1]
+            elsif lines.length == 1 && can_skip_text_or_rawtext_prefix?(lines.first)
               # OK, we're good
             else
               lines[-1] = "#{command}(" + lines[-1] + ")"
@@ -411,7 +422,9 @@ module Html2fortitude
           when "fortitude_block"
             needs_coda = true unless self.next && self.next.is_a?(::Nokogiri::XML::Element) &&
               self.next.name == 'fortitude_silent' && self.next.inner_text =~ /^\s*els(e|if)\s*$/i
-            coda = if needs_coda then "\n#{tabulate(tabs)}end\n" else "\n" end
+            coda = if needs_coda then "\n#{tabulate(tabs)}end" else "" end
+            coda << ")" if @is_loud_block
+            coda << "\n"
             children_text = render_children("", tabs, options).rstrip
             return children_text + coda
           end

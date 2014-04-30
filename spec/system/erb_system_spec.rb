@@ -20,4 +20,14 @@ hello, world})).to eq(%{foo do
 end
 text "hello, world"})
   end
+
+  it "should handle ERb blocks that are loud, like form_for" do
+    expect(h2f_content(%{<%= form_for do |f| %>
+  <%= f.text_field :name %>
+  <p class="baz"/>
+<% end %>})).to eq(%{text(form_for do |f|
+  text(f.text_field :name)
+  p(:class => "baz")
+end)})
+  end
 end
