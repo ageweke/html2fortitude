@@ -87,4 +87,15 @@ x
   text(x = 123; x += 200; x)
 }})
   end
+
+  it "should render a tag with a single child of loud output and attributes correctly" do
+    expect(h2f_content(%{<p aaa="bbb" ccc="ddd"><%= foo %></p>})).to eq(%{p(foo, :aaa => "bbb", :ccc => "ddd")})
+  end
+
+  it "should render a tag with a single child of loud output that needs parentheses and attributes correctly" do
+    expect(h2f_content(%{<p aaa="bbb" ccc="ddd"><%= foo :bar, :baz %></p>})).to eq(%{p((foo :bar, :baz), :aaa => "bbb", :ccc => "ddd")})
+  end
+
+  it "should turn <script type=\"text/javascript\"> into javascript { }"
+  it "should turn other <script> blocks into just script { }"
 end

@@ -21,7 +21,7 @@ class Html2FortitudeResult
         need_value = $2
       end
 
-      needs[need_name] = need_value
+      @needs[need_name] = need_value
 
       lines.shift
     end
@@ -51,6 +51,7 @@ class Html2FortitudeResult
 
     @content_lines = lines
     @content_lines = @content_lines.map do |content_line|
+      content_line = content_line.rstrip
       if content_line[0..3] == '    '
         content_line[4..-1]
       else

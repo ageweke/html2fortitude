@@ -33,11 +33,6 @@ module Nokogiri
         end
 
         text = uninterp(as_string)
-        # text = text.chomp if can_elide_text_against?(self.next)
-        # text = text.chomp if self.next && self.next.is_a?(::Nokogiri::XML::Element)
-        # text = $1 if text =~ /^[\r\n](.*)$/mi && self.previous && self.previous.is_a?(::Nokogiri::XML::Element)
-        # text = $1 if text =~ /^[\r\n](.*)$/mi && can_elide_text_against?(self.previous)
-
         if text =~ /\A((?:\s*[\r\n])*)(.*?)((?:\s*[\r\n])*)\Z/mi
           prefix, middle, suffix = $1, $2, $3
           middle = parse_text_with_interpolation(middle, tabs)
