@@ -5,7 +5,7 @@ bar
 <p class="baz"/>
 <% end %>})).to eq(%{foo do
   text "bar"
-  p :class => "baz"
+  p(:class => "baz")
 end})
   end
 
@@ -16,22 +16,8 @@ bar
 <% end %>
 hello, world})).to eq(%{foo do
   text "bar"
-  p :class => "baz"
+  p(:class => "baz")
 end
-text "hello, world"})
-  end
-
-  it "should leave blank lines in place after an ERb block" do
-    expect(h2f_content(%{<% foo do %>
-bar
-<p class="baz"/>
-<% end %>
-
-hello, world})).to eq(%{foo do
-  text "bar"
-  p :class => "baz"
-end
-
 text "hello, world"})
   end
 end
