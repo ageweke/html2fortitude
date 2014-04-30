@@ -8,7 +8,6 @@ describe "html2fortitude basics" do
 
 <p bar="baz"/>})).to eq(%{p(:foo => "bar")
 
-
 p(:bar => "baz")})
   end
 end

@@ -357,6 +357,10 @@ module Html2fortitude
         code !~ /[\r\n;]/ && (! can_skip_text_or_rawtext_prefix?(code))
       end
 
+      def is_text_element_starting_with_newline?(node)
+        node && node.is_a?(::Nokogiri::XML::Text) && node.to_s =~ /^\s*[\r\n]/
+      end
+
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
@@ -407,9 +411,6 @@ module Html2fortitude
         attributes_text = fortitude_attributes(options) if attr_hash && attr_hash.length > 0
         direct_content = nil
         render_children = true
-        # output << "#{fortitude_attributes(options)}" if attr_hash && attr_hash.length > 0
-
-        # output << ">" if nuke_outer_whitespace
 
         if children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Text)
           direct_content = quoted_string_for_text(child.to_s.strip)
@@ -440,7 +441,7 @@ module Html2fortitude
           output << children_output
           output << "\n#{tabulate(tabs)}#{element_block_end(options)}\n"
         else
-          output << "\n"
+          output << "\n" unless is_text_element_starting_with_newline?(self.next)
         end
 
         output

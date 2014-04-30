@@ -8,6 +8,12 @@ describe "html2fortitude tags handling" do
     expect(h2f_content(%{<p foo="bar"/>})).to eq(%{p(:foo => "bar")})
   end
 
+  it "should render two tags back-to-back correctly" do
+    expect(h2f_content(%{<p/><br/><p/>})).to eq(%{p
+br
+p})
+  end
+
   it "should render multiple attributes properly" do
     result = h2f_content(%{<p foo="bar" bar="baz"/>})
 
