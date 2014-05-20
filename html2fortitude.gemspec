@@ -4,8 +4,8 @@ require File.expand_path('../lib/html2fortitude/version', __FILE__)
 Gem::Specification.new do |gem|
   gem.authors       = ["Norman Clarke", "Stefan Natchev", "Andrew Geweke"]
   gem.email         = ["norman@njclarke.com", "stefan.natchev@gmail.com", "andrew@geweke.org"]
-  gem.description   = %q{Converts HTML into Fortitude}
-  gem.summary       = %q{Converts HTML into Fortitude}
+  gem.description   = %q{Converts HTML into the Fortitude Ruby HTML-generation DSL}
+  gem.summary       = %q{Converts HTML into the Fortitude Ruby HTML-generation DSL}
   gem.homepage      = "http://github.com/ageweke/html2fortitude"
 
   gem.files         = `git ls-files`.split($\)
