@@ -96,6 +96,17 @@ x
     expect(h2f_content(%{<p aaa="bbb" ccc="ddd"><%= foo :bar, :baz %></p>})).to eq(%{p((foo :bar, :baz), :aaa => "bbb", :ccc => "ddd")})
   end
 
-  it "should turn <script type=\"text/javascript\"> into javascript { }"
+  it "should turn <script type=\"text/javascript\"> into javascript <<-EOJC ... EOJC" do
+    expect(h2f_content(%{<script type="text/javascript">
+foo
+bar
+baz
+</script>})).to eq(%{javascript <<-END_OF_JAVASCRIPT_CONTENT
+foo
+bar
+baz
+END_OF_JAVASCRIPT_CONTENT})
+  end
+
   it "should turn other <script> blocks into just script { }"
 end

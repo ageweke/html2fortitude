@@ -529,6 +529,7 @@ module Html2fortitude
           end
 
         content = erb_to_interpolation(content, options)
+=begin
         content.gsub!(/\A\s*\n(\s*)/, '\1')
         original_indent = content[/\A(\s*)/, 1]
         if content.split("\n").all? {|l| l.strip.empty? || l =~ /^#{original_indent}/}
@@ -539,11 +540,12 @@ module Html2fortitude
           content.lstrip!
           content.gsub!(/^/, tabulate(tabs + 1))
         end
+=end
 
-        content.rstrip!
+        content.strip!
         content << "\n"
 
-        "#{tabulate(tabs)}#{filter} #{element_block_start(options)}\n#{content.rstrip}\n#{tabulate(tabs)}#{element_block_end(options)}"
+        "#{tabulate(tabs)}#{filter} <<-END_OF_#{filter.to_s.upcase}_CONTENT\n#{content.rstrip}\n#{tabulate(tabs)}END_OF_#{filter.to_s.upcase}_CONTENT"
       end
 
       def element_block_start(options)

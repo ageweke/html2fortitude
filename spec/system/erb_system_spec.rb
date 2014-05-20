@@ -38,11 +38,11 @@ end)})
 foo
 <%= bar %>
 baz
-</script>})).to eq(%{javascript {
-  foo
-  \#{bar}
-  baz
-}})
+</script>})).to eq(%{javascript <<-END_OF_JAVASCRIPT_CONTENT
+foo
+\#{bar}
+baz
+END_OF_JAVASCRIPT_CONTENT})
   end
 
   it "should render ERb silent inside <script> blocks as big warnings" do
@@ -50,17 +50,17 @@ baz
 bar
 <% baz %>
 quux
-</script>})).to eq(%{javascript {
-  bar
+</script>})).to eq(%{javascript <<-END_OF_JAVASCRIPT_CONTENT
+bar
 
-  # HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
-  # Fortitude isn't a simple string-manipulation engine, so you will have to find another
-  # way of accomplishing the same result here:
-  # <%
-  #  baz
-  # %>
-  quux
-}})
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+#  baz
+# %>
+quux
+END_OF_JAVASCRIPT_CONTENT})
   end
 
   it "should render ERb blocks inside <script> blocks as big warnings" do
@@ -72,37 +72,37 @@ quux
 bar
 <% end %>
 quux
-</script>})).to eq(%{javascript {
-  bar
+</script>})).to eq(%{javascript <<-END_OF_JAVASCRIPT_CONTENT
+bar
 
-  # HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
-  # Fortitude isn't a simple string-manipulation engine, so you will have to find another
-  # way of accomplishing the same result here:
-  # <%
-  #  if foo
-  # %>
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+#  if foo
+# %>
 
-  # HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
-  # Fortitude isn't a simple string-manipulation engine, so you will have to find another
-  # way of accomplishing the same result here:
-  # <%
-  # quux
-  # %>
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+# quux
+# %>
 
-  # HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
-  # Fortitude isn't a simple string-manipulation engine, so you will have to find another
-  # way of accomplishing the same result here:
-  # <%
-  #  else
-  # %>
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+#  else
+# %>
 
-  # HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
-  # Fortitude isn't a simple string-manipulation engine, so you will have to find another
-  # way of accomplishing the same result here:
-  # <%
-  # bar
-  # %>
-  quux
-}})
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+# bar
+# %>
+quux
+END_OF_JAVASCRIPT_CONTENT})
   end
 end
