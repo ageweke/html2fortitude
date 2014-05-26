@@ -225,6 +225,8 @@ module Html2fortitude
     #                                              them using instance variables, not methods), or +:no_needs+ (omit
     #                                              any +needs+ declarations entirely -- requires that you have
     #                                              +extra_assigns :use+ set on your widget, or it won't work)
+    # @option options :do_end [Boolean] (false) Use 'do ... end' rather than '{ ... }' for tag content
+    # @option options :new_style_hashes [Boolean] (false) Use Ruby 1.9-style Hashes
     def initialize(template, options = {})
       options.assert_valid_keys(:erb, :class_name, :superclass, :method, :assigns, :do_end, :new_style_hashes)
 

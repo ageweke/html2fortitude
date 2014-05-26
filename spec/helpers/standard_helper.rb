@@ -18,7 +18,7 @@ module StandardHelper
     Html2FortitudeResult.new(Html2fortitude::HTML.new(input, default_html_options.merge(options)).render)
   end
 
-  def h2f_content(input)
-    h2f(input).content_text
+  def h2f_content(input, options = { })
+    h2f(input, options).content_text
   end
 end
