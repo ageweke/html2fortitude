@@ -25,13 +25,17 @@ module Nokogiri
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
 
+        # Eliminate whitespace that has no newlines
         as_string = self.to_s
         return "" if as_string.strip.empty? && as_string !~ /[\r\n]/mi
+
         if as_string.strip.empty?
+          # If we get here, it's whitespace, but containing newlines; eliminate trailing indentation
           as_string = $1 if as_string =~ /^(.*?[\r\n])[ \t]+$/mi
           return as_string
         end
 
+        # We have actual content if we get here; deal with leading and trailing newline/whitespace combinations properly
         text = uninterp(as_string)
         if text =~ /\A((?:\s*[\r\n])*)(.*?)((?:\s*[\r\n])*)\Z/mi
           prefix, middle, suffix = $1, $2, $3
@@ -44,13 +48,46 @@ module Nokogiri
 
       private
 
+      # Converts a string that may contain ERb interpolation into valid Fortitude code.
+      #
+      # This is actually NOT called in nearly all the cases you might imagine. Generally speaking, our strategy is to
+      # convert ERb interpolation into faux-HTML tags (<fortitude_loud>, <fortitude_silent>, and <fortitude_block>),
+      # and use Nokogiri to parse the resulting "HTML"; we then transform elements properly, converting most into
+      # Fortitude tags (e.g., 'p', 'div', etc.) and converting, _e.g._, <fortitude_loud>...</fortitude_loud> into
+      # 'text(...)', <fortitude_silent>...</fortitude_silent> into just '...', and so on.
+      #
+      # However, in certain cases -- like the content of <script> and <style> tags -- we need to convert an entire
+      # string, at once, to Fortitude, because the content of those tags is special; it's not parsed as HTML.
+      # This method does exactly that.
+      #
+      # There is, however, one case we cannot trivially convert. If you do something like this with ERb:
+      #
+      #     <script>
+      #       var message = "You are ";
+      #       <% if @current_user.admin? %>
+      #       message = message + "an admin";
+      #       <% else %>
+      #       message = message + "a user";
+      #       <% end %>
+      #       ...
+      #     </script>
+      #
+      # Then there actually _is_ no valid Fortitude transformation of this block -- because here you're using ERb as
+      # a Javascript text-substitution preprocessor, not an HTML-generation engine. Short of actually having
+      # Fortitude invoke ERb at runtime, there's no simple answer here.
+      #
+      # Instead, we choose to emit this with a big FIXME comment around it, saying that you need to fix it yourself;
+      # most cases actually don't seem to be very hard to fix, as long as you know about it.
       def erb_to_interpolation(text, options)
         return text unless options[:erb]
+        # Escape the text...
         text = CGI.escapeHTML(uninterp(text))
+        # Unescape our <fortitude_loud> tags.
         %w[<fortitude_loud> </fortitude_loud>].each do |str|
           text.gsub!(CGI.escapeHTML(str), str)
         end
 
+        # Find any instances of the escaped form of tags we're not compatible with, and put in the FIXME comments.
         %w[fortitude_silent fortitude_block].each do |fake_tag_name|
           while text =~ %r{^(.*?)&lt;#{fake_tag_name}&gt;(.*?)&lt;/#{fake_tag_name}&gt;(.*)$}mi
             before, middle, after = $1, $2, $3
@@ -79,8 +116,13 @@ module Nokogiri
         end
       end
 
+      # Given a string of text, extracts the 'needs' declarations we'll, ahem, need from it in order to render it --
+      # in short, just the instance variables we see in it -- and adds them to options[:needs]. Returns a version of
+      # +text+ with instance variable references replaced with +needs+ references; this typically just means converting,
+      # _e.g._, +@foo+ to +foo+, although we leave it alone if you've told us that you're going to use Fortitude in
+      # that mode.
       def extract_needs_from!(text, options)
-        text.gsub(/@[\w\d]+/) do |variable_name|
+        text.gsub(/@[A-Za-z0-9_]+/) do |variable_name|
           without_at = variable_name[1..-1]
           options[:needs] << without_at
 
@@ -92,44 +134,58 @@ module Nokogiri
         end
       end
 
+      TAB_SIZE = 2
+
+      # Returns a number of spaces equivalent to that many tabs.
       def tabulate(tabs)
-        '  ' * tabs
+        ' ' * TAB_SIZE * tabs
       end
 
+      # Replaces actual "#{" strings with the escaped version thereof.
       def uninterp(text)
         text.gsub('#{', '\#{') #'
       end
 
+      # Returns a Hash of the attributes for this node. This just transforms the internal Nokogiri attribute list
+      # (which is an Array) into a Hash.
       def attr_hash
         Hash[attributes.map {|k, v| [k.to_s, v.to_s]}]
       end
 
+      # Turns a String into a Fortitude 'text' command.
       def parse_text(text, tabs)
         parse_text_with_interpolation(uninterp(text), tabs)
       end
 
+      # Escapes single-line text properly.
       def escape_single_line_text(text)
         text.gsub(/"/) { |m| "\\" + m }
       end
 
+      # Escapes multi-line text properly.
       def escape_multiline_text(text)
         text.gsub(/\}/, '\\}')
       end
 
-      def can_elide_text_against?(previous_or_next)
+      # Given another Node (which can be nil), tells us whether we can elide any whitespace present between this node
+      # and that node. This is true only if the next-or-previous node is an Element and not one of our special
+      # <fortitude...> elements.
+      def can_elide_whitespace_against?(previous_or_next)
         (! previous_or_next) ||
           (previous_or_next.is_a?(::Nokogiri::XML::Element) && (! FORTITUDE_TAGS.include?(previous_or_next.name)))
       end
 
+      # Given text, produces a valid Fortitude command to output that text.
       def parse_text_with_interpolation(text, tabs)
         return "" if text.empty?
 
-        text = text.lstrip if can_elide_text_against?(previous)
-        text = text.rstrip if can_elide_text_against?(self.next)
+        text = text.lstrip if can_elide_whitespace_against?(previous)
+        text = text.rstrip if can_elide_whitespace_against?(self.next)
 
         "#{tabulate(tabs)}text #{quoted_string_for_text(text)}\n"
       end
 
+      # Quotes text properly; this deals with figuring out whether it's a single line of text or multiline text.
       def quoted_string_for_text(text)
         if text =~ /[\r\n]/
           text = "%{#{escape_multiline_text(text)}}"
@@ -143,20 +199,6 @@ end
 
 # @private
 FORTITUDE_TAGS = %w[fortitude_block fortitude_loud fortitude_silent]
-#
-# FORTITUDE_TAGS.each do |t|
-#   Nokogiri::XML::ElementContent[t] = {}
-#   Nokogiri::XML::ElementContent.keys.each do |key|
-#     Nokogiri::XML::ElementContent[t][key.hash] = true
-#   end
-# end
-#
-# Nokogiri::XML::ElementContent.keys.each do |k|
-#   FORTITUDE_TAGS.each do |el|
-#     val = Nokogiri::XML::ElementContent[k]
-#     val[el.hash] = true if val.is_a?(Hash)
-#   end
-# end
 
 module Html2fortitude
   # Converts HTML documents into Fortitude templates.

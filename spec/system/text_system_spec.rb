@@ -3,6 +3,10 @@ describe "html2fortitude text translation" do
     expect(h2f_content("hello, world")).to eq(%{text "hello, world"})
   end
 
+  it "should escape '\#{' sequences in its input" do
+    expect(h2f_content("hello, \#{world}")).to eq(%{text "hello, \\\#{world}"})
+  end
+
   it "should properly escape text that requires escaping" do
     expect(h2f_content("hello, \"world")).to eq(%{text "hello, \\\"world"})
   end
@@ -17,6 +21,19 @@ describe "html2fortitude text translation" do
 world})).to eq(%{text %{hello
 
 world}})
+  end
+
+  it "should properly handle multiline text with a } in it" do
+    result = h2f_content(<<-EOS)
+hello
+}
+world
+EOS
+    expect(result).to eq(<<-EOS.rstrip)
+text %{hello
+\\}
+world}
+EOS
   end
 
   it "should not output empty space" do
