@@ -1,5 +1,5 @@
 class Html2FortitudeResult
-  attr_reader :needs
+  attr_reader :needs, :class_name, :superclass
 
   def initialize(text)
     lines = text.split(/[\r\n]/)
