@@ -1,4 +1,6 @@
 class Html2FortitudeResult
+  attr_reader :needs
+
   def initialize(text)
     lines = text.split(/[\r\n]/)
     if lines.shift =~ /^\s*class\s*(\S+)\s+<\s+(\S+)\s*$/i
@@ -16,7 +18,7 @@ class Html2FortitudeResult
       need_name = $1
       need_value = nil
 
-      if need_name =~ /^(.*)\s*=>\s*(.*?)\s*$/i
+      if need_name =~ /^(.*?)\s*=>\s*(.*?)\s*$/i
         need_name = $1
         need_value = $2
       end

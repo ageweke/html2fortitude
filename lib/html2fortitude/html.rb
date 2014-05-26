@@ -215,8 +215,16 @@ module Html2fortitude
     # @param template [String, Nokogiri::Node] The HTML template to convert
     # @option options :erb [Boolean] (false) Whether or not to parse
     #   ERB's `<%= %>` and `<% %>` into Fortitude's `text()` and (standard code)
-    # @option options :xhtml [Boolean] (false) Whether or not to parse
-    #   the HTML strictly as XHTML
+    # @option options :class_name [String] (required) The name of the class to generate
+    # @option options :superclass [String] (required) The name of the superclass for this widget
+    # @option options :method [String] (required) The name of the method to generate (usually 'content')
+    # @option options :assigns [Symbol] (required) Can be one of +:needs_defaulted_to_nil+ (generate +needs+
+    #                                              declarations with defaults of +nil+), +:required_needs+ (generate
+    #                                              +needs+ declarations with no defaults), +:instance_variables+
+    #                                              (generate +needs+ declarations with defaults of +nil+, but reference
+    #                                              them using instance variables, not methods), or +:no_needs+ (omit
+    #                                              any +needs+ declarations entirely -- requires that you have
+    #                                              +extra_assigns :use+ set on your widget, or it won't work)
     def initialize(template, options = {})
       options.assert_valid_keys(:erb, :class_name, :superclass, :method, :assigns, :do_end, :new_style_hashes)
 
