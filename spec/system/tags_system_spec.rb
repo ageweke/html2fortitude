@@ -137,6 +137,20 @@ baz
 END_OF_JAVASCRIPT_CONTENT})
   end
 
+  it "should remove CDATA from within 'javascript'" do
+    expect(h2f_content(%{<script type="text/javascript">
+<![CDATA[
+foo
+bar
+baz
+]]>
+</script>})).to eq(%{javascript <<-END_OF_JAVASCRIPT_CONTENT
+foo
+bar
+baz
+END_OF_JAVASCRIPT_CONTENT})
+  end
+
   it "should turn <script language=\"javascript\"> into javascript <<-EOJC ... EOJC" do
     expect(h2f_content(%{<script language="javascript">
 foo
@@ -200,6 +214,20 @@ foo
 bar
 baz
 </style>})).to eq(%{style <<-END_OF_STYLE_CONTENT
+foo
+bar
+baz
+END_OF_STYLE_CONTENT})
+  end
+
+  it "should remove CDATA from within 'style'" do
+    expect(h2f_content(%{<style type="text/css">
+<![CDATA[
+foo
+bar
+baz
+]]>
+</style>})).to eq(%{style <<-END_OF_STYLE_CONTENT, :type => "text/css"
 foo
 bar
 baz

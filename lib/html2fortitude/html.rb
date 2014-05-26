@@ -267,8 +267,8 @@ module Html2fortitude
       end
     end
 
-    # Processes the document and returns the result as a string
-    # containing the Fortitude template.
+    # Processes the document and returns the result as a String containing the Fortitude template, including the
+    # class declaration, needs text, method declaration, content, and ends.
     def render
       to_fortitude_options = {
         :erb => @erb,
@@ -293,6 +293,7 @@ module Html2fortitude
     end
 
     private
+    # Returns the 'needs' line appropriate for this class; this can be nil if they've set +:no_needs+.
     def needs_declarations(needs)
       return nil if @assigns == :no_needs
 
@@ -311,9 +312,6 @@ module Html2fortitude
     end
 
     alias_method :to_fortitude, :render
-
-    TEXT_REGEXP = /^(\s*).*$/
-
 
     # @see Nokogiri
     # @private
@@ -353,9 +351,10 @@ module Html2fortitude
     class ::Nokogiri::XML::CDATA
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
-        content = parse_text_with_interpolation(
-          erb_to_interpolation(self.content, options), tabs + 1)
-        "#{tabulate(tabs)}:cdata\n#{content}"
+        content = erb_to_interpolation(self.content, options).strip
+        # content = parse_text_with_interpolation(
+        #   erb_to_interpolation(self.content, options), tabs + 1)
+        "#{tabulate(tabs)}cdata <<-END_OF_CDATA_CONTENT\n#{content}\nEND_OF_CDATA_CONTENT"
       end
 
       # removes the start and stop markers for cdata
@@ -581,7 +580,7 @@ module Html2fortitude
 
       def to_fortitude_filter(filter, tabs, options, attributes_hash)
         content =
-          if children.first && children.first.cdata?
+          if children.first && children.first.cdata? && filter.to_s == 'javascript'
             decode_entities(children.first.content_without_cdata_tokens)
           else
             decode_entities(self.inner_text)
