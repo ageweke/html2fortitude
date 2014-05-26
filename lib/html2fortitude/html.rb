@@ -390,6 +390,12 @@ module Html2fortitude
     class ::Nokogiri::XML::Element
       BUILT_IN_RENDERING_HELPERS = %w{render}
 
+      # Given a section of code that we're going to output, can we skip putting 'text' or 'rawtext' in front of it?
+      # We can do this under the following scenarios:
+      #
+      # * The code is a single line, and contains no semicolons; and
+      # * The method it's calling is either 'render' (which Fortitude implements internally) or a helper method that
+      #   Fortitude automatically outputs the return value from.
       def can_skip_text_or_rawtext_prefix?(code)
         return false if code =~ /[\r\n]/mi
         return false if code =~ /;/mi
@@ -400,14 +406,33 @@ module Html2fortitude
           (method && BUILT_IN_RENDERING_HELPERS.include?(method.strip.downcase))
       end
 
+      # Given a section of code that we're going to output, can we use it as a method argument directly? Or do we need
+      # to nest it inside a block to the tag?
+      #
+      # In other words, can we say just:
+      #
+      #     p(...code...)
+      #
+      # ...or do we need to say:
+      #
+      #     p {
+      #       text(...code...)
+      #     }
       def code_can_be_used_as_a_method_argument?(code)
         code !~ /[\r\n;]/ && (! can_skip_text_or_rawtext_prefix?(code))
       end
 
+      # Kinda just like what it says ;)
       def is_text_element_starting_with_newline?(node)
         node && node.is_a?(::Nokogiri::XML::Text) && node.to_s =~ /^\s*[\r\n]/
       end
 
+      # This is used to support blocks like form_for -- this tells the next element that it needs to put a close
+      # parenthesis on the end, since we end up outputting something like:
+      #
+      #     text(form_for do |f|
+      #       text(f.text_field :name)
+      #     end)
       def is_loud_block!
         @is_loud_block = true
       end
@@ -421,6 +446,8 @@ module Html2fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
 
+        # If this is a <script> or <style> block, output the correct syntax for it; we use the #javascript convenience
+        # method if possible.
         if name == "script"
           if VALID_JAVASCRIPT_SCRIPT_TYPES.include?((attr_hash['type'] || VALID_JAVASCRIPT_SCRIPT_TYPES.first).strip.downcase) &&
              VALID_JAVASCRIPT_LANGUAGE_TYPES.include?((attr_hash['language'] || VALID_JAVASCRIPT_LANGUAGE_TYPES.first).strip.downcase)
@@ -434,13 +461,20 @@ module Html2fortitude
         end
 
         output = tabulate(tabs)
+        # Here's where the real heart of a lot of our ERb processing happens. We process the special tags:
+        #
+        # * +<fortitude_loud>+ -- equivalent to ERb's +<%= %>+;
+        # * +<fortitude_silent>+ -- equivalent to ERb's +<% %>+;
+        # * +<fortitude_block>+ -- equivalent to a multi-line +<% %>+
         if options[:erb] && FORTITUDE_TAGS.include?(name)
           case name
+          # This is ERb +<%= %>+ -- i.e., code we need to output the return value of
           when "fortitude_loud"
+            # Extract any instance variables, add 'needs' for them, and turn them into method calls
             t = extract_needs_from!(CGI.unescapeHTML(inner_text), options)
             lines = t.split("\n").map { |s| s.strip }
 
-            command = if attribute("raw") then "rawtext" else "text" end
+            outputting_method = if attribute("raw") then "rawtext" else "text" end
 
             # Handle this case:
             # <%= form_for(@user) do |f| %>
@@ -448,11 +482,14 @@ module Html2fortitude
             # <% end %>
             if self.next && self.next.is_a?(::Nokogiri::XML::Element) && self.next.name == 'fortitude_block'
               self.next.is_loud_block!
-              lines[-1] = "#{command}(" + lines[-1]
+              # What gets output is whatever the code returns, so we put the method on the last line of the block
+              lines[-1] = "#{outputting_method}(" + lines[-1]
             elsif lines.length == 1 && can_skip_text_or_rawtext_prefix?(lines.first)
-              # OK, we're good
+              # OK, we're good -- this means there's only a single line, and we're calling a Rails helper method
+              # that automatically outputs, so we don't actually have to use 'text' or 'rawtext'
             else
-              lines[-1] = "#{command}(" + lines[-1] + ")"
+              # What gets output is whatever the code returns, so we put the method on the last line of the block
+              lines[-1] = "#{outputting_method}(" + lines[-1] + ")"
             end
 
             return lines.map {|s| output + s + "\n"}.join
@@ -470,6 +507,8 @@ module Html2fortitude
             coda << "\n"
             children_text = render_children("", tabs, options).rstrip
             return children_text + coda
+          else
+            raise "Unknown special tag: #{name.inspect}"
           end
         end
 

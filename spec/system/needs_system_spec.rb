@@ -50,4 +50,18 @@ text(foo + bar)})
     expect(result.content_text).to eq(%{text "hello, "
 text(@foo + @bar)})
   end
+
+  it "should extract 'needs' from loud ERb" do
+    result = h2f("hello, <%= @foo %>")
+    expect(result.needs).to eq({ ":foo" => "nil" })
+    expect(result.content_text).to eq(%{text "hello, "
+text(foo)})
+  end
+
+  it "should extract 'needs' from loud ERb" do
+    result = h2f("hello, <% @foo %>")
+    expect(result.needs).to eq({ ":foo" => "nil" })
+    expect(result.content_text).to eq(%{text "hello, "
+foo})
+  end
 end

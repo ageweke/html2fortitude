@@ -33,6 +33,18 @@ text "hello, world"})
 end)})
   end
 
+  it "should handle multiline ERb blocks that are loud, like form_for" do
+    expect(h2f_content(%{<%= foo + bar
+form_for do |f| %>
+  <%= f.text_field :name %>
+  <p class="baz"/>
+<% end %>})).to eq(%{foo + bar
+text(form_for do |f|
+  text(f.text_field :name)
+  p(:class => "baz")
+end)})
+  end
+
   it "should interpolate ERb inside a <script> block when possible" do
     expect(h2f_content(%{<script type="text/javascript">
 foo
