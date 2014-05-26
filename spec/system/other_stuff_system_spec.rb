@@ -16,4 +16,24 @@ bar
 END_OF_CDATA_CONTENT
 text "world"})
   end
+
+  it "should emit DTDs correctly" do
+    expect(h2f_content(%{<!DOCTYPE html>})).to eq(%{doctype!})
+  end
+
+  it "should emit comments correctly" do
+    expect(h2f_content(%{hello <!-- something here --> world})).to eq(%{text "hello "
+comment "something here"
+text " world"})
+  end
+
+  it "should emit multiline comments correctly" do
+    expect(h2f_content(%{hello <!-- something
+here
+yo --> world})).to eq(%{text "hello "
+comment %{something
+here
+yo}
+text " world"})
+  end
 end

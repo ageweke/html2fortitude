@@ -369,6 +369,8 @@ module Html2fortitude
     # @private
     class ::Nokogiri::XML::DTD
       # @see Html2fortitude::HTML::Node#to_fortitude
+
+      # We just emit 'doctype!' here, because the base widget knows its doctype.
       def to_fortitude(tabs, options)
         "#{tabulate(tabs)}doctype!\n"
       end
@@ -379,17 +381,7 @@ module Html2fortitude
     class ::Nokogiri::XML::Comment
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
-        content = self.content
-        if content =~ /\A(\[[^\]]+\])>(.*)<!\[endif\]\z/m
-          condition = $1
-          content = $2
-        end
-
-        if content.include?("\n")
-          "#{tabulate(tabs)}/#{condition}\n#{parse_text(content, tabs + 1)}"
-        else
-          "#{tabulate(tabs)}/#{condition} #{content.strip}\n"
-        end
+        return "#{tabulate(tabs)}comment #{quoted_string_for_text(self.content.strip)}\n"
       end
     end
 

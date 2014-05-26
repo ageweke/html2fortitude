@@ -99,4 +99,8 @@ bar})).to eq(%{p
 
 text "bar"})
   end
+
+  it "should skip 'text'/'rawtext' when calling 'render'" do
+    expect(h2f_content(%{<%= render :partial => 'foo/bar' %>})).to eq(%{render :partial => 'foo/bar'})
+  end
 end
