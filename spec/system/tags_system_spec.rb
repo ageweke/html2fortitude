@@ -70,6 +70,13 @@ world})})
     expect(h2f_content(%{<p><%= foo %></p>})).to eq(%{p(foo)})
   end
 
+  it "should render a tag with multiple children of loud output correctly" do
+    expect(h2f_content(%{<p><%= foo %><%= bar %></p>})).to eq(%{p {
+  text(foo)
+  text(bar)
+}})
+  end
+
   it "should render a tag with a single child of multiline loud output correctly" do
     expect(h2f_content(%{<p><%=
 x = 123
@@ -96,6 +103,28 @@ x
     expect(h2f_content(%{<p aaa="bbb" ccc="ddd"><%= foo :bar, :baz %></p>})).to eq(%{p((foo :bar, :baz), :aaa => "bbb", :ccc => "ddd")})
   end
 
+  it "should render a tag with a single child of quiet output correctly" do
+    expect(h2f_content(%{<p><% foo %></p>})).to eq(%{p {
+  foo
+}})
+  end
+
+  it "should render a tag with multiple children of quiet output correctly" do
+    expect(h2f_content(%{<p><% foo %><% bar %></p>})).to eq(%{p {
+  foo
+  bar
+}})
+  end
+
+  it "should render a tag with intermixed quiet and loud output correctly" do
+    expect(h2f_content(%{<p><% foo %><%= bar %><% baz %><%= quux %></p>})).to eq(%{p {
+  foo
+  text(bar)
+  baz
+  text(quux)
+}})
+  end
+
   it "should turn <script type=\"text/javascript\"> into javascript <<-EOJC ... EOJC" do
     expect(h2f_content(%{<script type="text/javascript">
 foo
@@ -108,5 +137,60 @@ baz
 END_OF_JAVASCRIPT_CONTENT})
   end
 
-  it "should turn other <script> blocks into just script { }"
+  it "should turn <script language=\"javascript\"> into javascript <<-EOJC ... EOJC" do
+    expect(h2f_content(%{<script language="javascript">
+foo
+bar
+baz
+</script>})).to eq(%{javascript <<-END_OF_JAVASCRIPT_CONTENT
+foo
+bar
+baz
+END_OF_JAVASCRIPT_CONTENT})
+  end
+
+  it "should turn <script type=\"text/javascript\"> with additional attributes into javascript <<-EOJC ... EOJC with those attributes" do
+    expect(h2f_content(%{<script type="text/javascript" id="bar">
+foo
+bar
+baz
+</script>})).to eq(%{javascript <<-END_OF_JAVASCRIPT_CONTENT, :id => "bar"
+foo
+bar
+baz
+END_OF_JAVASCRIPT_CONTENT})
+  end
+
+  it "should turn other <script> blocks into just script <<-EOSC ... EOSC" do
+    expect(h2f_content(%{<script type="text/vbscript">
+foo
+bar
+baz
+</script>})).to eq(%{script <<-END_OF_SCRIPT_CONTENT, :type => "text/vbscript"
+foo
+bar
+baz
+END_OF_SCRIPT_CONTENT})
+  end
+
+  it "should include attributes in other <script> blocks" do
+    result = h2f_content(%{<script type="text/vbscript" id="bar">
+foo
+bar
+baz
+</script>})
+
+    if result =~ /^script <<-END_OF_SCRIPT_CONTENT, (.*)$/
+      attributes = $1
+
+      expect([
+        %{:type => "text/vbscript", :id => "bar"},
+        %{:id => "bar", :type => "text/vbscript"}
+      ]).to be_include(attributes)
+    else
+      raise "No match: #{script}"
+    end
+
+    expect(result).to match(/^script <<-END_OF_SCRIPT_CONTENT, .*\nfoo\nbar\nbaz\nEND_OF_SCRIPT_CONTENT$/mi)
+  end
 end

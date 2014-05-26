@@ -369,14 +369,21 @@ module Html2fortitude
         @is_loud_block = true
       end
 
+      VALID_JAVASCRIPT_SCRIPT_TYPES = [ 'text/javascript', 'text/ecmascript', 'application/javascript', 'application/ecmascript']
+      VALID_JAVASCRIPT_LANGUAGE_TYPES = [ 'javascript', 'ecmascript' ]
+
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
 
-        if name == "script" &&
-            (attr_hash['type'].nil? || attr_hash['type'].to_s == "text/javascript") &&
-            (attr_hash.keys - ['type']).empty?
-          return to_fortitude_filter(:javascript, tabs, options)
+        if name == "script"
+          if VALID_JAVASCRIPT_SCRIPT_TYPES.include?((attr_hash['type'] || VALID_JAVASCRIPT_SCRIPT_TYPES.first).strip.downcase) &&
+             VALID_JAVASCRIPT_LANGUAGE_TYPES.include?((attr_hash['language'] || VALID_JAVASCRIPT_LANGUAGE_TYPES.first).strip.downcase)
+            new_attrs = Hash[attr_hash.reject { |k,v| %w{type language}.include?(k.to_s.strip.downcase) }]
+            return to_fortitude_filter(:javascript, tabs, options, new_attrs)
+          else
+            return to_fortitude_filter(:script, tabs, options, attr_hash)
+          end
         elsif name == "style" &&
             (attr_hash['type'].nil? || attr_hash['type'].to_s == "text/css") &&
             (attr_hash.keys - ['type']).empty?
@@ -520,7 +527,7 @@ module Html2fortitude
       end
 
 
-      def to_fortitude_filter(filter, tabs, options)
+      def to_fortitude_filter(filter, tabs, options, attributes_hash)
         content =
           if children.first && children.first.cdata?
             decode_entities(children.first.content_without_cdata_tokens)
@@ -529,23 +536,15 @@ module Html2fortitude
           end
 
         content = erb_to_interpolation(content, options)
-=begin
-        content.gsub!(/\A\s*\n(\s*)/, '\1')
-        original_indent = content[/\A(\s*)/, 1]
-        if content.split("\n").all? {|l| l.strip.empty? || l =~ /^#{original_indent}/}
-          content.gsub!(/^#{original_indent}/, tabulate(tabs + 1))
-        else
-          # Indentation is inconsistent. Strip whitespace from start and indent all
-          # to ensure valid Fortitude.
-          content.lstrip!
-          content.gsub!(/^/, tabulate(tabs + 1))
-        end
-=end
-
         content.strip!
         content << "\n"
 
-        "#{tabulate(tabs)}#{filter} <<-END_OF_#{filter.to_s.upcase}_CONTENT\n#{content.rstrip}\n#{tabulate(tabs)}END_OF_#{filter.to_s.upcase}_CONTENT"
+        first_line = "#{tabulate(tabs)}#{filter} <<-END_OF_#{filter.to_s.upcase}_CONTENT"
+        first_line += ", #{fortitude_attributes({ }, attributes_hash)}" unless attributes_hash.empty?
+        middle = content.rstrip
+        last_line = "#{tabulate(tabs)}END_OF_#{filter.to_s.upcase}_CONTENT"
+
+        first_line + "\n" + middle + "\n" + last_line
       end
 
       def element_block_start(options)
@@ -598,8 +597,9 @@ module Html2fortitude
 
       # Returns a string representation of an attributes hash
       # that's prettier than that produced by Hash#inspect
-      def fortitude_attributes(options)
-        attrs = attr_hash.sort.map do |name, value|
+      def fortitude_attributes(options, override_attr_hash = nil)
+        attrs = override_attr_hash || attr_hash
+        attrs = attrs.sort.map do |name, value|
           fortitude_attribute_pair(name, value.to_s, options)
         end
         "#{attrs.join(', ')}"
