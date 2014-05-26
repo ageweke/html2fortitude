@@ -372,6 +372,8 @@ module Html2fortitude
       VALID_JAVASCRIPT_SCRIPT_TYPES = [ 'text/javascript', 'text/ecmascript', 'application/javascript', 'application/ecmascript']
       VALID_JAVASCRIPT_LANGUAGE_TYPES = [ 'javascript', 'ecmascript' ]
 
+      VALID_CSS_TYPES = [ 'text/css' ]
+
       # @see Html2fortitude::HTML::Node#to_fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
@@ -384,10 +386,8 @@ module Html2fortitude
           else
             return to_fortitude_filter(:script, tabs, options, attr_hash)
           end
-        elsif name == "style" &&
-            (attr_hash['type'].nil? || attr_hash['type'].to_s == "text/css") &&
-            (attr_hash.keys - ['type']).empty?
-          return to_fortitude_filter(:css, tabs, options)
+        elsif name == "style"
+          return to_fortitude_filter(:style, tabs, options, attr_hash)
         end
 
         output = tabulate(tabs)

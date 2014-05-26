@@ -193,4 +193,28 @@ baz
 
     expect(result).to match(/^script <<-END_OF_SCRIPT_CONTENT, .*\nfoo\nbar\nbaz\nEND_OF_SCRIPT_CONTENT$/mi)
   end
+
+  it "should turn <style> tags into style <<-EOSC ... EOSC" do
+    expect(h2f_content(%{<style>
+foo
+bar
+baz
+</style>})).to eq(%{style <<-END_OF_STYLE_CONTENT
+foo
+bar
+baz
+END_OF_STYLE_CONTENT})
+  end
+
+  it "should turn <style> tags with an attribute into style <<-EOSC, <attribute> ... EOSC" do
+    expect(h2f_content(%{<style id="foo">
+foo
+bar
+baz
+</style>})).to eq(%{style <<-END_OF_STYLE_CONTENT, :id => "foo"
+foo
+bar
+baz
+END_OF_STYLE_CONTENT})
+  end
 end

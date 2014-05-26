@@ -45,6 +45,18 @@ baz
 END_OF_JAVASCRIPT_CONTENT})
   end
 
+  it "should interpolate ERb inside a <style> block when possible" do
+    expect(h2f_content(%{<style type="text/css">
+foo
+<%= bar %>
+baz
+</style>})).to eq(%{style <<-END_OF_STYLE_CONTENT, :type => "text/css"
+foo
+\#{bar}
+baz
+END_OF_STYLE_CONTENT})
+  end
+
   it "should render ERb silent inside <script> blocks as big warnings" do
     expect(h2f_content(%{<script type="text/javascript">
 bar
@@ -61,6 +73,24 @@ bar
 # %>
 quux
 END_OF_JAVASCRIPT_CONTENT})
+  end
+
+  it "should render ERb silent inside <style> blocks as big warnings" do
+    expect(h2f_content(%{<style type="text/css">
+bar
+<% baz %>
+quux
+</style>})).to eq(%{style <<-END_OF_STYLE_CONTENT, :type => "text/css"
+bar
+
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+#  baz
+# %>
+quux
+END_OF_STYLE_CONTENT})
   end
 
   it "should render ERb blocks inside <script> blocks as big warnings" do
@@ -104,5 +134,48 @@ bar
 # %>
 quux
 END_OF_JAVASCRIPT_CONTENT})
+  end
+
+  it "should render ERb blocks inside <style> blocks as big warnings" do
+    expect(h2f_content(%{<style type="text/css">
+bar
+<% if foo %>
+quux
+<% else %>
+bar
+<% end %>
+quux
+</style>})).to eq(%{style <<-END_OF_STYLE_CONTENT, :type => "text/css"
+bar
+
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+#  if foo
+# %>
+
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+# quux
+# %>
+
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+#  else
+# %>
+
+# HTML2FORTITUDE_FIXME_BEGIN: The following code was interpolated into this block using ERb;
+# Fortitude isn't a simple string-manipulation engine, so you will have to find another
+# way of accomplishing the same result here:
+# <%
+# bar
+# %>
+quux
+END_OF_STYLE_CONTENT})
   end
 end
