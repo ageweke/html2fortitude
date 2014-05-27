@@ -4,7 +4,6 @@ require 'html2fortitude/html'
 module StandardHelper
   def default_html_options
     {
-      :erb => true,
       :class_name => "SpecClass",
       :superclass => "Fortitude::Widget::Html5",
       :method => "content",

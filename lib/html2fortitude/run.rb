@@ -19,7 +19,7 @@ module Html2fortitude
         block.call { |io| contents = io.read }
 
         effective_options = trollop_options.select do |key, value|
-          %w{output class_name class_base superclass method assigns do_end new_style_hashes no_erb}.include?(key.to_s)
+          %w{output class_name class_base superclass method assigns do_end new_style_hashes}.include?(key.to_s)
         end
 
         source_template = Html2fortitude::SourceTemplate.new(name, contents, effective_options)
@@ -88,8 +88,6 @@ EOS
 
         opt :do_end,     "Use do ... end for blocks passed to tag methods, not { ... } (does not affect blocks from ERb)", :type => :boolean
         opt :new_style_hashes, "Use hash_style: ruby19 instead of :hash_style => :ruby_18", :type => :boolean
-
-        opt :no_erb,     "Do not process ERb in input", :short => 'e', :type => :boolean
       end
 
       @trollop_options ||= begin

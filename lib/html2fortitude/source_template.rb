@@ -6,7 +6,7 @@ module Html2fortitude
 
     def initialize(filename, contents, options)
       options.assert_valid_keys(:output, :class_name, :class_base, :superclass, :method, :assigns,
-        :do_end, :new_style_hashes, :no_erb)
+        :do_end, :new_style_hashes)
 
       @filename = filename
       @contents = contents
@@ -16,7 +16,6 @@ module Html2fortitude
 
     def write_transformed_content!
       html_options = {
-        :erb => (! options[:no_erb]),
         :class_name => output_class_name,
         :superclass => options[:superclass],
         :method => options[:method],

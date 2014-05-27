@@ -79,7 +79,6 @@ module Nokogiri
       # Instead, we choose to emit this with a big FIXME comment around it, saying that you need to fix it yourself;
       # most cases actually don't seem to be very hard to fix, as long as you know about it.
       def erb_to_interpolation(text, options)
-        return text unless options[:erb]
         # Escape the text...
         text = CGI.escapeHTML(uninterp(text))
         # Unescape our <fortitude_loud> tags.
@@ -213,8 +212,6 @@ module Html2fortitude
   #       #=> "%a{:href => 'http://google.com'} Blat"
   class HTML
     # @param template [String, Nokogiri::Node] The HTML template to convert
-    # @option options :erb [Boolean] (false) Whether or not to parse
-    #   ERB's `<%= %>` and `<% %>` into Fortitude's `text()` and (standard code)
     # @option options :class_name [String] (required) The name of the class to generate
     # @option options :superclass [String] (required) The name of the superclass for this widget
     # @option options :method [String] (required) The name of the method to generate (usually 'content')
@@ -228,17 +225,14 @@ module Html2fortitude
     # @option options :do_end [Boolean] (false) Use 'do ... end' rather than '{ ... }' for tag content
     # @option options :new_style_hashes [Boolean] (false) Use Ruby 1.9-style Hashes
     def initialize(template, options = {})
-      options.assert_valid_keys(:erb, :class_name, :superclass, :method, :assigns, :do_end, :new_style_hashes)
+      options.assert_valid_keys(:class_name, :superclass, :method, :assigns, :do_end, :new_style_hashes)
 
       if template.is_a? Nokogiri::XML::Node
         @template = template
       else
-        if options[:erb]
-          require 'html2fortitude/html/erb'
-          template = ERB.compile(template)
-        end
+        require 'html2fortitude/html/erb'
+        template = ERB.compile(template)
 
-        @erb = options[:erb]
         @class_name = options[:class_name] || raise(ArgumentError, "You must specify a class name")
         @superclass = options[:superclass] || raise(ArgumentError, "You must specify a superclass")
         @method = options[:method] || raise(ArgumentError, "You must specify a method name")
@@ -294,7 +288,6 @@ module Html2fortitude
     # class declaration, needs text, method declaration, content, and ends.
     def render
       to_fortitude_options = {
-        :erb => @erb,
         :needs => [ ],
         :assign_reference => (@assigns == :instance_variables ? :instance_variable : :method),
         :do_end => @do_end,
@@ -525,7 +518,7 @@ module Html2fortitude
         # * +<fortitude_loud>+ -- equivalent to ERb's +<%= %>+;
         # * +<fortitude_silent>+ -- equivalent to ERb's +<% %>+;
         # * +<fortitude_block>+ -- used when a +<%=+ or +<%+ starts a block of Ruby code; encloses the whole thing
-        if options[:erb] && FORTITUDE_TAGS.include?(name)
+        if FORTITUDE_TAGS.include?(name)
           case name
           # This is ERb +<%= %>+ -- i.e., code we need to output the return value of
           when "fortitude_loud"
@@ -730,7 +723,7 @@ module Html2fortitude
 
       # Does the attribute with the given name include any ERb in its value?
       def dynamic_attribute?(name, options)
-        options[:erb] and dynamic_attributes(options).key?(name)
+        dynamic_attributes(options).key?(name)
       end
 
       # Returns a string representation of an attributes hash
