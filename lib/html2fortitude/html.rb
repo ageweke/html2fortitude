@@ -442,23 +442,65 @@ module Html2fortitude
 
       VALID_CSS_TYPES = [ 'text/css' ]
 
-      # @see Html2fortitude::HTML::Node#to_fortitude
-      def to_fortitude(tabs, options)
-        return "" if converted_to_fortitude
 
-        # If this is a <script> or <style> block, output the correct syntax for it; we use the #javascript convenience
-        # method if possible.
+      # If this is a <script> or <style> block, return the correct syntax for it; we use the #javascript convenience
+      # method if possible. If this is not either of those, returns nil.
+      def contents_for_direct_input(tabs, options)
         if name == "script"
           if VALID_JAVASCRIPT_SCRIPT_TYPES.include?((attr_hash['type'] || VALID_JAVASCRIPT_SCRIPT_TYPES.first).strip.downcase) &&
              VALID_JAVASCRIPT_LANGUAGE_TYPES.include?((attr_hash['language'] || VALID_JAVASCRIPT_LANGUAGE_TYPES.first).strip.downcase)
             new_attrs = Hash[attr_hash.reject { |k,v| %w{type language}.include?(k.to_s.strip.downcase) }]
-            return contents_as_direct_input_to_tag(:javascript, tabs, options, new_attrs)
+            contents_as_direct_input_to_tag(:javascript, tabs, options, new_attrs)
           else
-            return contents_as_direct_input_to_tag(:script, tabs, options, attr_hash)
+            contents_as_direct_input_to_tag(:script, tabs, options, attr_hash)
           end
         elsif name == "style"
-          return contents_as_direct_input_to_tag(:style, tabs, options, attr_hash)
+          contents_as_direct_input_to_tag(:style, tabs, options, attr_hash)
+        else
+          nil
         end
+      end
+
+      # Some HTML tags like <script> and <style> have content that isn't parsed at all; Fortitude handles this by
+      # simply supplying it as direct content to the tag, typically as an <<-EOS string:
+      #
+      #     script <<-END_OF_SCRIPT_CONTENT
+      #       var foo = 1;
+      #       ...
+      #     END_OF_SCRIPT_CONTENT
+      #
+      # This method creates exactly that form.
+      def contents_as_direct_input_to_tag(tag_name, tabs, options, attributes_hash)
+        tag_name = tag_name.to_s.strip.downcase
+
+        content =
+          # We want to remove any CDATA present if it's Javascript; the Fortitude #javascript method takes care of
+          # adding CDATA if needed (_i.e._, for XHTML doctypes only).
+          if children.first && children.first.cdata? && tag_name == 'javascript'
+            decode_entities(children.first.content_without_cdata_tokens)
+          else
+            decode_entities(self.inner_text)
+          end
+
+        content = erb_to_interpolation(content, options)
+        content.strip!
+        content << "\n"
+
+        first_line = "#{tabulate(tabs)}#{tag_name} <<-END_OF_#{tag_name.upcase}_CONTENT"
+        first_line += ", #{fortitude_attributes({ }, attributes_hash)}" unless attributes_hash.empty?
+        middle = content.rstrip
+        last_line = "#{tabulate(tabs)}END_OF_#{tag_name.upcase}_CONTENT"
+
+        first_line + "\n" + middle + "\n" + last_line
+      end
+
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
+        return "" if converted_to_fortitude
+
+        # Get <script> and <style> blocks out of the way.
+        direct_input = contents_for_direct_input(tabs, options)
+        return direct_input if direct_input
 
         output = tabulate(tabs)
         # Here's where the real heart of a lot of our ERb processing happens. We process the special tags:
@@ -621,39 +663,6 @@ module Html2fortitude
         return true if ruby.sexp_type == :call  #local var or method
 
         false
-      end
-
-      # Some HTML tags like <script> and <style> have content that isn't parsed at all; Fortitude handles this by
-      # simply supplying it as direct content to the tag, typically as an <<-EOS string:
-      #
-      #     script <<-END_OF_SCRIPT_CONTENT
-      #       var foo = 1;
-      #       ...
-      #     END_OF_SCRIPT_CONTENT
-      #
-      # This method creates exactly that form.
-      def contents_as_direct_input_to_tag(tag_name, tabs, options, attributes_hash)
-        tag_name = tag_name.to_s.strip.downcase
-
-        content =
-          # We want to remove any CDATA present if it's Javascript; the Fortitude #javascript method takes care of
-          # adding CDATA if needed (_i.e._, for XHTML doctypes only).
-          if children.first && children.first.cdata? && tag_name == 'javascript'
-            decode_entities(children.first.content_without_cdata_tokens)
-          else
-            decode_entities(self.inner_text)
-          end
-
-        content = erb_to_interpolation(content, options)
-        content.strip!
-        content << "\n"
-
-        first_line = "#{tabulate(tabs)}#{tag_name} <<-END_OF_#{tag_name.upcase}_CONTENT"
-        first_line += ", #{fortitude_attributes({ }, attributes_hash)}" unless attributes_hash.empty?
-        middle = content.rstrip
-        last_line = "#{tabulate(tabs)}END_OF_#{tag_name.upcase}_CONTENT"
-
-        first_line + "\n" + middle + "\n" + last_line
       end
 
       # Returns the string we want to use to start a block -- either '{' (by default) or 'do' (if asked)
