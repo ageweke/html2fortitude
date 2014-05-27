@@ -17,6 +17,14 @@ text " "
 text(last_name)})
   end
 
+  it "should maintain space between ERb outputting blocks, even if it's a newline" do
+    expect(h2f_content(%{hello, <%= @first_name %>
+<%= @last_name %>})).to eq(%{text "hello, "
+text(first_name)
+text " "
+text(last_name)})
+  end
+
   it "should leave space after an ERb block" do
     expect(h2f_content(%{<% foo do %>
 bar

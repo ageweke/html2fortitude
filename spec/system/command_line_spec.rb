@@ -172,4 +172,118 @@ text " "
 text(last_name)})
     end
   end
+
+  it "should make needs required, if asked to" do
+    with_temp_directory("required_needs") do
+      splat! "one.html.erb", <<-EOF
+hello, <%= @first_name %> <%= @last_name %>
+EOF
+
+      invoke("one.html.erb", "-c MyWidget", "--assigns required_needs")
+
+      result = h2f_from("one.rb")
+      expect(result.class_name).to eq("MyWidget")
+      expect(result.needs).to eq({ ":first_name" => nil, ":last_name" => nil })
+      expect(result.content_text).to eq(%{text "hello, "
+text(first_name)
+text " "
+text(last_name)})
+    end
+  end
+
+  it "should make needs use instance variables, if asked to" do
+    with_temp_directory("instance_variable_needs") do
+      splat! "one.html.erb", <<-EOF
+hello, <%= @first_name %> <%= @last_name %>
+EOF
+
+      invoke("one.html.erb", "-c MyWidget", "--assigns instance_variables")
+
+      result = h2f_from("one.rb")
+      expect(result.class_name).to eq("MyWidget")
+      expect(result.needs).to eq({ ":first_name" => "nil", ":last_name" => "nil" })
+      expect(result.content_text).to eq(%{text "hello, "
+text(@first_name)
+text " "
+text(@last_name)})
+    end
+  end
+
+  it "should emit no needs, if asked to" do
+    with_temp_directory("no_needs") do
+      splat! "one.html.erb", <<-EOF
+hello, <%= @first_name %> <%= @last_name %>
+EOF
+
+      invoke("one.html.erb", "-c MyWidget", "--assigns no_needs")
+
+      result = h2f_from("one.rb")
+      expect(result.class_name).to eq("MyWidget")
+      expect(result.needs).to eq({ })
+      expect(result.content_text).to eq(%{text "hello, "
+text(first_name)
+text " "
+text(last_name)})
+    end
+  end
+
+  it "should use braces for blocks, by default" do
+    with_temp_directory("default_braces") do
+      splat! "one.html.erb", <<-EOF
+<p>
+  <span>hello, world</span>
+</p>
+EOF
+
+      invoke("one.html.erb", "-c MyWidget")
+
+      result = h2f_from("one.rb")
+      expect(result.content_text).to eq(%{p {
+  span("hello, world")
+}})
+    end
+  end
+
+  it "should use do/end for blocks, if asked to" do
+    with_temp_directory("do_end") do
+      splat! "one.html.erb", <<-EOF
+<p>
+  <span>hello, world</span>
+</p>
+EOF
+
+      invoke("one.html.erb", "-c MyWidget", "--do-end")
+
+      result = h2f_from("one.rb")
+      expect(result.content_text).to eq(%{p do
+  span("hello, world")
+end})
+    end
+  end
+
+  it "should use old-style hashes, by default" do
+    with_temp_directory("old_hashes") do
+      splat! "one.html.erb", <<-EOF
+<p class="foo"/>
+EOF
+
+      invoke("one.html.erb", "-c MyWidget")
+
+      result = h2f_from("one.rb")
+      expect(result.content_text).to eq(%{p(:class => "foo")})
+    end
+  end
+
+  it "should use new-style hashes, if asked to" do
+    with_temp_directory("new_hashes") do
+      splat! "one.html.erb", <<-EOF
+<p class="foo"/>
+EOF
+
+      invoke("one.html.erb", "-c MyWidget", "--new-style-hashes")
+
+      result = h2f_from("one.rb")
+      expect(result.content_text).to eq(%{p(class: "foo")})
+    end
+  end
 end
