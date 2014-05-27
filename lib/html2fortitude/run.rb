@@ -25,7 +25,9 @@ module Html2fortitude
         source_template = Html2fortitude::SourceTemplate.new(name, contents, effective_options)
         source_template.write_transformed_content!
 
-        puts "#{source_template.filename} -> #{source_template.output_filename} (#{source_template.line_count} lines)"
+        unless @argv.include?("-")
+          puts "#{source_template.filename} -> #{source_template.output_filename} (#{source_template.line_count} lines)"
+        end
       end
     end
 

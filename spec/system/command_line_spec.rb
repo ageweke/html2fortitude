@@ -286,4 +286,126 @@ EOF
       expect(result.content_text).to eq(%{p(class: "foo")})
     end
   end
+
+  it "should process stdin to stdout, if asked to" do
+    with_temp_directory("stdin_processing") do
+      splat! "one.html.erb", <<-EOF
+hello, world
+EOF
+
+      output = invoke("-", "-c MyWidget", "< one.html.erb")
+      result = Html2FortitudeResult.new(output)
+
+      expect(result.class_name).to eq("MyWidget")
+      expect(result.content_text).to eq(%{text "hello, world"})
+    end
+  end
+
+  it "should process multiple files from the command line properly" do
+    with_temp_directory("multiple_files") do
+      splat! "one.html.erb", <<-EOF
+hello, world
+EOF
+
+      splat! "two.html.erb", <<-EOF
+hello, universe
+EOF
+
+      invoke("one.html.erb", "two.html.erb", "-c MyWidget")
+
+      result1 = h2f_from("one.rb")
+      expect(result1.class_name).to eq("MyWidget")
+      expect(result1.content_text).to eq(%{text "hello, world"})
+
+      result2 = h2f_from("two.rb")
+      expect(result2.class_name).to eq("MyWidget")
+      expect(result2.content_text).to eq(%{text "hello, universe"})
+    end
+  end
+
+  it "should process multiple files from the command line with an inferred base directory" do
+    with_temp_directory("multiple_files_with_inferred_base") do
+      splat! "app/views/foo/one.html.erb", <<-EOF
+hello, world
+EOF
+
+      splat! "app/views/bar/two.html.erb", <<-EOF
+hello, universe
+EOF
+
+      invoke("app/views/foo/one.html.erb", "app/views/bar/two.html.erb")
+
+      result1 = h2f_from("app/views/foo/one.rb")
+      expect(result1.class_name).to eq("Views::Foo::One")
+      expect(result1.content_text).to eq(%{text "hello, world"})
+
+      result2 = h2f_from("app/views/bar/two.rb")
+      expect(result2.class_name).to eq("Views::Bar::Two")
+      expect(result2.content_text).to eq(%{text "hello, universe"})
+    end
+  end
+
+  it "should process an entire directory if asked to" do
+    with_temp_directory("entire_directory") do
+      splat! "app/views/foo/one.html.erb", <<-EOF
+hello, world
+EOF
+
+      splat! "app/views/bar/two.html.erb", <<-EOF
+hello, universe
+EOF
+
+      invoke("app")
+
+      result1 = h2f_from("app/views/foo/one.rb")
+      expect(result1.class_name).to eq("Views::Foo::One")
+      expect(result1.content_text).to eq(%{text "hello, world"})
+
+      result2 = h2f_from("app/views/bar/two.rb")
+      expect(result2.class_name).to eq("Views::Bar::Two")
+      expect(result2.content_text).to eq(%{text "hello, universe"})
+    end
+  end
+
+  it "should process multiple directories at once if asked to" do
+    with_temp_directory("multiple_directories_and_files") do
+      splat! "app/views/foo/one.html.erb", <<-EOF
+hello, world
+EOF
+
+      splat! "app/views/bar/two.html.erb", <<-EOF
+hello, universe
+EOF
+
+      splat! "other/app/views/baz/something.html.erb", <<-EOF
+something 1
+EOF
+
+      splat! "other/app/views/quux/other_thing.html.erb", <<-EOF
+other_thing 1
+EOF
+
+      invoke("app", "other")
+
+      result1 = h2f_from("app/views/foo/one.rb")
+      expect(result1.class_name).to eq("Views::Foo::One")
+      expect(result1.content_text).to eq(%{text "hello, world"})
+
+      result2 = h2f_from("app/views/bar/two.rb")
+      expect(result2.class_name).to eq("Views::Bar::Two")
+      expect(result2.content_text).to eq(%{text "hello, universe"})
+
+      result3 = h2f_from("other/app/views/baz/something.rb")
+      expect(result3.class_name).to eq("Views::Baz::Something")
+      expect(result3.content_text).to eq(%{text "something 1"})
+
+      result4 = h2f_from("other/app/views/quux/other_thing.rb")
+      expect(result4.class_name).to eq("Views::Quux::OtherThing")
+      expect(result4.content_text).to eq(%{text "other_thing 1"})
+
+      result4 = h2f_from("other/app/views/quux/other_thing.rb")
+      expect(result4.class_name).to eq("Views::Quux::OtherThing")
+      expect(result4.content_text).to eq(%{text "other_thing 1"})
+    end
+  end
 end
