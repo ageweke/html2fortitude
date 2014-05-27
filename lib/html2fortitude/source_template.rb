@@ -73,7 +73,7 @@ but the file you asked to parse is not underneath that directory:
     end
 
     def class_base
-      options[:class_base] || infer_class_base
+      File.expand_path(options[:class_base] || infer_class_base)
     end
 
     def infer_class_base
