@@ -556,12 +556,13 @@ module Html2fortitude
       def to_fortitude(tabs, options)
         return "" if converted_to_fortitude
 
-        # Get <script> and <style> blocks out of the way.
+        # Get <script> and <style> elements out of the way.
         direct_input = contents_for_direct_input(tabs, options)
         return direct_input if direct_input
 
         output = tabulate(tabs)
 
+        # Get <fortitude_loud>, <fortitude_silent>, and <fortitude_block> elements out of the way.
         fortitude_result = result_for_fortitude_tag(tabs, options, output)
         return fortitude_result if fortitude_result
 
