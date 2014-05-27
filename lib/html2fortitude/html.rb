@@ -494,15 +494,9 @@ module Html2fortitude
         first_line + "\n" + middle + "\n" + last_line
       end
 
-      # @see Html2fortitude::HTML::Node#to_fortitude
-      def to_fortitude(tabs, options)
-        return "" if converted_to_fortitude
-
-        # Get <script> and <style> blocks out of the way.
-        direct_input = contents_for_direct_input(tabs, options)
-        return direct_input if direct_input
-
-        output = tabulate(tabs)
+      # If this is a <fortitude_loud>, <fortitude_silent>, or <fortitude_block> element, return the Fortitude code
+      # for it. Otherwise, returns nil.
+      def result_for_fortitude_tag(tabs, options, output)
         # Here's where the real heart of a lot of our ERb processing happens. We process the special tags:
         #
         # * +<fortitude_loud>+ -- equivalent to ERb's +<%= %>+;
@@ -556,6 +550,20 @@ module Html2fortitude
             raise "Unknown special tag: #{name.inspect}"
           end
         end
+      end
+
+      # @see Html2fortitude::HTML::Node#to_fortitude
+      def to_fortitude(tabs, options)
+        return "" if converted_to_fortitude
+
+        # Get <script> and <style> blocks out of the way.
+        direct_input = contents_for_direct_input(tabs, options)
+        return direct_input if direct_input
+
+        output = tabulate(tabs)
+
+        fortitude_result = result_for_fortitude_tag(tabs, options, output)
+        return fortitude_result if fortitude_result
 
         output << "#{name}"
 
