@@ -198,7 +198,7 @@ module Nokogiri
 end
 
 # @private
-FORTITUDE_TAGS = %w[fortitude_block fortitude_loud fortitude_silent]
+FORTITUDE_TAGS = %w[fortitude_block fortitude_loud fortitude_silent fortitude_spacer]
 
 module Html2fortitude
   # Converts HTML documents into Fortitude templates.
@@ -247,6 +247,8 @@ module Html2fortitude
         @do_end = options[:do_end]
         @new_style_hashes = options[:new_style_hashes]
 
+        template = add_spacers_to(template)
+
         if template =~ /^\s*<!DOCTYPE|<html/i
           return @template = Nokogiri.HTML(template)
         end
@@ -263,6 +265,27 @@ module Html2fortitude
         # we can detect this when libxml returns error code XML_ERR_NAME_REQUIRED : 68
         if @template.errors.any? { |e| e.code == 68 } || template =~ /CDATA/
           return @template = Nokogiri::XML.fragment(template)
+        end
+      end
+    end
+
+    # So: ERb that looks like this: <%= @first_name %> <%= @last_name %>
+    # is presumably intended to produce "John Doe". It gets run through our ERb filter, and comes out as this HTML:
+    # <fortitude_loud> @first_name </fortitude_loud> <fortitude_loud> @last_name </fortitude_loud>
+    #
+    # This seems OK, except that when Nokogiri parses it, it throws away the space between the end of the first
+    # </fortitude_loud> and the second <fortitude_loud>, because it "knows" that whitespace between tags in HTML isn't
+    # significant. Which, you know, is true for HTML in general, but is NOT true here; we need to keep that whitespace,
+    # or we'll end up with "JohnDoe".
+    #
+    # As a result, we look for this pattern, and insert a <fortitude_spacer/> element there, which we explicitly just
+    # output as 'text " "'. This brings back our spacer.
+    def add_spacers_to(template)
+      template.gsub(%r{</fortitude_[a-z]+>\s+<fortitude_}) do |match|
+        if match =~ %r{(</fortitude_[a-z]+>)\s+(<fortitude_)}
+          "#{$1}<fortitude_spacer/>#{$2}"
+        else
+          raise "Should always match!"
         end
       end
     end
@@ -546,6 +569,8 @@ module Html2fortitude
             coda << "\n"
             children_text = render_children("", tabs, options).rstrip
             return children_text + coda
+          when "fortitude_spacer"
+            return %{text " "\n}
           else
             raise "Unknown special tag: #{name.inspect}"
           end

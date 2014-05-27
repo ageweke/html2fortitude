@@ -168,6 +168,7 @@ EOF
       expect(result.needs).to eq({ ":first_name" => "nil", ":last_name" => "nil" })
       expect(result.content_text).to eq(%{text "hello, "
 text(first_name)
+text " "
 text(last_name)})
     end
   end
