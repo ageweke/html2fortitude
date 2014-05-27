@@ -21,4 +21,37 @@ module StandardHelper
   def h2f_content(input, options = { })
     h2f(input, options).content_text
   end
+
+  def invoke(*args)
+    cmd = "#{binary_path} #{args.join(" ")} 2>&1"
+    output = `#{cmd}`
+    unless $?.success?
+      raise "Invocation failed: ran: #{cmd}\nin: #{Dir.pwd}\nand got: #{$?.inspect}\nwith output:\n#{output}"
+    end
+    output
+  end
+
+  def with_temp_directory(name, &block)
+    directory = File.join(temp_directory_base, name)
+    FileUtils.rm_rf(directory) if File.exist?(directory)
+    FileUtils.mkdir_p(directory)
+    Dir.chdir(directory, &block)
+  end
+
+  private
+  def temp_directory_base
+    @temp_directory_base ||= begin
+      out = File.join(gem_root, 'tmp', 'specs')
+      FileUtils.mkdir_p(out)
+      out
+    end
+  end
+
+  def gem_root
+    @gem_root ||= File.expand_path(File.join(File.dirname(__FILE__), '..', '..'))
+  end
+
+  def binary_path
+    @binary_path ||= File.join(gem_root, 'bin', 'html2fortitude')
+  end
 end
