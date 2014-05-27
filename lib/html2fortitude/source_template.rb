@@ -2,6 +2,8 @@ require 'html2fortitude/html'
 
 module Html2fortitude
   class SourceTemplate
+    attr_reader :filename, :line_count
+
     def initialize(filename, contents, options)
       options.assert_valid_keys(:output, :class_name, :class_base, :superclass, :method, :assigns,
         :do_end, :new_style_hashes, :no_erb)
@@ -9,6 +11,7 @@ module Html2fortitude
       @filename = filename
       @contents = contents
       @options = options
+      @line_count = @contents.split(/(\r|\n|\r\n)/).length
     end
 
     def write_transformed_content!
@@ -32,8 +35,24 @@ module Html2fortitude
       end
     end
 
+    def output_filename
+      if (! options[:output]) && (filename == "-")
+        "-"
+      elsif (! options[:output])
+        if filename =~ /^(.*)\.html\.erb$/i || filename =~ /^(.*)\.rhtml$/i
+          "#{$1}.rb"
+        else
+          "#{filename}.rb"
+        end
+      elsif File.directory?(options[:output])
+        File.join(File.expand_path(options[:output]), "#{output_class_name.underscore}.rb")
+      else
+        File.expand_path(options[:output])
+      end
+    end
+
     private
-    attr_reader :filename, :contents, :options
+    attr_reader :contents, :options
 
     def output_class_name
       if options[:class_name]
@@ -67,22 +86,6 @@ using the -c command-line option. (Otherwise, we have no way of knowing what to 
 You must either specify an explicit name for the class, using the -c command-line option, or
 specify a base directory to infer the class name from, using the -b command-line option
 (e.g., "-b my_rails_app/app").}
-      end
-    end
-
-    def output_filename
-      if (! options[:output]) && (filename == "-")
-        "-"
-      elsif (! options[:output])
-        if filename =~ /^(.*)\.html\.erb$/i || filename =~ /^(.*)\.rhtml$/i
-          "#{$1}.rb"
-        else
-          "#{filename}.rb"
-        end
-      elsif File.directory?(options[:output])
-        File.join(File.expand_path(options[:output]), "#{output_class_name.underscore}.rb")
-      else
-        File.expand_path(options[:output])
       end
     end
   end

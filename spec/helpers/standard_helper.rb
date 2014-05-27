@@ -22,6 +22,10 @@ module StandardHelper
     h2f(input, options).content_text
   end
 
+  def h2f_from(filename)
+    Html2FortitudeResult.new(get(filename))
+  end
+
   def invoke(*args)
     cmd = "#{binary_path} #{args.join(" ")} 2>&1"
     output = `#{cmd}`
@@ -29,6 +33,15 @@ module StandardHelper
       raise "Invocation failed: ran: #{cmd}\nin: #{Dir.pwd}\nand got: #{$?.inspect}\nwith output:\n#{output}"
     end
     output
+  end
+
+  def splat!(filename, data)
+    File.open(filename, 'w') { |f| f << data }
+  end
+
+  def get(filename)
+    raise Errno::ENOENT, "No such file: #{filename.inspect}" unless File.file?(filename)
+    File.read(filename).strip
   end
 
   def with_temp_directory(name, &block)
