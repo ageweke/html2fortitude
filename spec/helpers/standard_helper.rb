@@ -36,6 +36,7 @@ module StandardHelper
   end
 
   def splat!(filename, data)
+    FileUtils.mkdir_p(File.dirname(filename))
     File.open(filename, 'w') { |f| f << data }
   end
 

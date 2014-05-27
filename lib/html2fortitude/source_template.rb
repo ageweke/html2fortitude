@@ -60,7 +60,9 @@ module Html2fortitude
       else
         cb = class_base
         if filename.start_with?("#{cb}/")
-          filename[(cb.length + 1)..-1].camelize
+          out = filename[(cb.length + 1)..-1].camelize
+          out = $1 if out =~ %r{^(.*?)\.[^/]+$}i
+          out
         else
           raise %{You specified a class base using the -b command-line option:
   #{class_base}
