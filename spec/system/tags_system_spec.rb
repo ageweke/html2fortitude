@@ -36,6 +36,10 @@ p(:bar => "baz")})
     expect(h2f_content(%{<p foo="<%= bar %>"})).to eq(%{p(:foo => bar)})
   end
 
+  it "should render attributes that have partially dynamic values properly" do
+    expect(h2f_content(%{<p foo="baz <%= bar %> quux"})).to eq(%{p(:foo => "baz \#{bar} quux")})
+  end
+
   it "should render attributes that have a mix of dynamic and static content for their values properly" do
     expect(h2f_content(%{<p foo="bar <%= baz %> quux"/>})).to eq(%{p(:foo => "bar \#{baz} quux")})
   end

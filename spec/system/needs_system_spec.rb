@@ -58,10 +58,16 @@ text(@foo + @bar)})
 text(foo)})
   end
 
-  it "should extract 'needs' from loud ERb" do
+  it "should extract 'needs' from silent ERb" do
     result = h2f("hello, <% @foo %>")
     expect(result.needs).to eq({ ":foo" => "nil" })
     expect(result.content_text).to eq(%{text "hello, "
 foo})
+  end
+
+  it "should extract 'needs' from code used as a direct argument to a tag" do
+    result = h2f("<p><%= @foo %></p>")
+    expect(result.needs).to eq({ ":foo" => "nil" })
+    expect(result.content_text).to eq(%{p(foo)})
   end
 end

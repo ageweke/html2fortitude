@@ -452,12 +452,12 @@ module Html2fortitude
           if VALID_JAVASCRIPT_SCRIPT_TYPES.include?((attr_hash['type'] || VALID_JAVASCRIPT_SCRIPT_TYPES.first).strip.downcase) &&
              VALID_JAVASCRIPT_LANGUAGE_TYPES.include?((attr_hash['language'] || VALID_JAVASCRIPT_LANGUAGE_TYPES.first).strip.downcase)
             new_attrs = Hash[attr_hash.reject { |k,v| %w{type language}.include?(k.to_s.strip.downcase) }]
-            return to_fortitude_filter(:javascript, tabs, options, new_attrs)
+            return contents_as_direct_input_to_tag(:javascript, tabs, options, new_attrs)
           else
-            return to_fortitude_filter(:script, tabs, options, attr_hash)
+            return contents_as_direct_input_to_tag(:script, tabs, options, attr_hash)
           end
         elsif name == "style"
-          return to_fortitude_filter(:style, tabs, options, attr_hash)
+          return contents_as_direct_input_to_tag(:style, tabs, options, attr_hash)
         end
 
         output = tabulate(tabs)
@@ -465,7 +465,7 @@ module Html2fortitude
         #
         # * +<fortitude_loud>+ -- equivalent to ERb's +<%= %>+;
         # * +<fortitude_silent>+ -- equivalent to ERb's +<% %>+;
-        # * +<fortitude_block>+ -- equivalent to a multi-line +<% %>+
+        # * +<fortitude_block>+ -- used when a +<%=+ or +<%+ starts a block of Ruby code; encloses the whole thing
         if options[:erb] && FORTITUDE_TAGS.include?(name)
           case name
           # This is ERb +<%= %>+ -- i.e., code we need to output the return value of
@@ -493,12 +493,15 @@ module Html2fortitude
             end
 
             return lines.map {|s| output + s + "\n"}.join
+          # This is ERb +<% %>+ -- i.e., code we just need to run
           when "fortitude_silent"
+            # Extract any instance variables, add 'needs' for them, and turn them into method calls
             t = extract_needs_from!(CGI.unescapeHTML(inner_text), options)
             return t.split("\n").map do |line|
               next "" if line.strip.empty?
               "#{output}#{line.strip}\n"
             end.join
+          # This is ERb +<%+ or +<%=+ that starts a Ruby block
           when "fortitude_block"
             needs_coda = true unless self.next && self.next.is_a?(::Nokogiri::XML::Element) &&
               self.next.name == 'fortitude_silent' && self.next.inner_text =~ /^\s*els(e|if)\s*$/i
@@ -518,9 +521,13 @@ module Html2fortitude
         direct_content = nil
         render_children = true
 
+        # If the element only has a single run of text as its content, try just passing it as a direct argument to
+        # our tag method, rather than starting a block
         if children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Text)
           direct_content = quoted_string_for_text(child.to_s.strip)
           render_children = false
+        # If the element only has one thing as its content, and that's an ERb +<%= %>+ block, try just passing that
+        # code directly as a method argument, if we can do that
         elsif children.try(:size) == 1 && children.first.is_a?(::Nokogiri::XML::Element) &&
           children.first.name == "fortitude_loud" &&
           code_can_be_used_as_a_method_argument?(child.inner_text)
@@ -528,10 +535,12 @@ module Html2fortitude
           it = extract_needs_from!(child.inner_text, options)
 
           direct_content = "#{it.strip}"
+          # Put parentheses around it if we have attributes, and it's a method call without parentheses
           direct_content = "(#{direct_content})" if attributes_text && direct_content =~ /^\s*[A-Za-z_][A-Za-z0-9_]*[\!\?\=]?\s+\S/
           render_children = false
         end
 
+        # Produce the arguments to our tag method...
         if attributes_text && direct_content
           output << "(#{direct_content}, #{attributes_text})"
         elsif direct_content
@@ -540,6 +549,7 @@ module Html2fortitude
           output << "(#{attributes_text})"
         end
 
+        # Render the children, if we need to.
         if render_children && children && children.size >= 1
           children_output = render_children("", tabs, options).strip
           output << " #{element_block_start(options)}\n"
@@ -555,17 +565,21 @@ module Html2fortitude
 
       private
 
+      # Just string together the children, calling #to_fortitude on each of them.
       def render_children(so_far, tabs, options)
         (self.children || []).inject(so_far) do |output, child|
           output + child.to_fortitude(tabs + 1, options)
-          # output + "|#{child.node_type}#{child.to_fortitude(tabs + 1, options)}|"
         end
       end
 
+      # Take the attributes for this node (from +attr_hash+) and return from it a Hash. This Hash will have entries
+      # for any attributes that have substitutions (_i.e._, ERb tags) in their values, mapping the name of each
+      # attribute to the text we should use for it -- that is, pure Ruby code where possible, Ruby String interpolations
+      # where not.
       def dynamic_attributes(options)
-        #reject any attrs without <fortitude>
         return @dynamic_attributes if @dynamic_attributes
 
+        # reject any attrs without <fortitude>
         @dynamic_attributes = attr_hash.select {|name, value| value =~ %r{<fortitude.*</fortitude} }
         @dynamic_attributes.each do |name, value|
           fragment = Nokogiri::XML.fragment(CGI.unescapeHTML(value))
@@ -592,6 +606,7 @@ module Html2fortitude
         end
       end
 
+      # Given an attribute value, can we simply use bare Ruby code for it, or do we need to use string interpolation?
       def attribute_value_can_be_bare_ruby?(value)
         begin
           ruby = RubyParser.new.parse(value)
@@ -608,10 +623,22 @@ module Html2fortitude
         false
       end
 
+      # Some HTML tags like <script> and <style> have content that isn't parsed at all; Fortitude handles this by
+      # simply supplying it as direct content to the tag, typically as an <<-EOS string:
+      #
+      #     script <<-END_OF_SCRIPT_CONTENT
+      #       var foo = 1;
+      #       ...
+      #     END_OF_SCRIPT_CONTENT
+      #
+      # This method creates exactly that form.
+      def contents_as_direct_input_to_tag(tag_name, tabs, options, attributes_hash)
+        tag_name = tag_name.to_s.strip.downcase
 
-      def to_fortitude_filter(filter, tabs, options, attributes_hash)
         content =
-          if children.first && children.first.cdata? && filter.to_s == 'javascript'
+          # We want to remove any CDATA present if it's Javascript; the Fortitude #javascript method takes care of
+          # adding CDATA if needed (_i.e._, for XHTML doctypes only).
+          if children.first && children.first.cdata? && tag_name == 'javascript'
             decode_entities(children.first.content_without_cdata_tokens)
           else
             decode_entities(self.inner_text)
@@ -621,14 +648,15 @@ module Html2fortitude
         content.strip!
         content << "\n"
 
-        first_line = "#{tabulate(tabs)}#{filter} <<-END_OF_#{filter.to_s.upcase}_CONTENT"
+        first_line = "#{tabulate(tabs)}#{tag_name} <<-END_OF_#{tag_name.upcase}_CONTENT"
         first_line += ", #{fortitude_attributes({ }, attributes_hash)}" unless attributes_hash.empty?
         middle = content.rstrip
-        last_line = "#{tabulate(tabs)}END_OF_#{filter.to_s.upcase}_CONTENT"
+        last_line = "#{tabulate(tabs)}END_OF_#{tag_name.upcase}_CONTENT"
 
         first_line + "\n" + middle + "\n" + last_line
       end
 
+      # Returns the string we want to use to start a block -- either '{' (by default) or 'do' (if asked)
       def element_block_start(options)
         if options[:do_end]
           "do"
@@ -637,6 +665,7 @@ module Html2fortitude
         end
       end
 
+      # Returns the string we want to use to end a block -- either '}' (by default) or 'end' (if asked)
       def element_block_end(options)
         if options[:do_end]
           "end"
@@ -645,7 +674,6 @@ module Html2fortitude
         end
       end
 
-      # TODO: this method is utterly awful, find a better way to decode HTML entities.
       def decode_entities(str)
         return str
         str.gsub(/&[\S]+;/) do |entity|
@@ -657,24 +685,9 @@ module Html2fortitude
         end
       end
 
-      def static_attribute?(name, options)
-        attr_hash[name] && !dynamic_attribute?(name, options)
-      end
-
+      # Does the attribute with the given name include any ERb in its value?
       def dynamic_attribute?(name, options)
         options[:erb] and dynamic_attributes(options).key?(name)
-      end
-
-      def static_id?(options)
-        static_attribute?('id', options) && fortitude_css_attr?(attr_hash['id'])
-      end
-
-      def static_classname?(options)
-        static_attribute?('class', options)
-      end
-
-      def fortitude_css_attr?(attr)
-        attr =~ /^[-:\w]+$/
       end
 
       # Returns a string representation of an attributes hash
