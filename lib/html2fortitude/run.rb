@@ -46,7 +46,7 @@ module Html2fortitude
         if File.directory?(file_or_directory)
           Find.find(file_or_directory) do |f|
             f = File.expand_path(f, file_or_directory)
-            files << f if File.file?(f)
+            files << f if File.file?(f) && f =~ /\.r?html/
           end
         else
           files << file_or_directory
@@ -85,7 +85,7 @@ EOS
   needs_defaulted_to_nil: (default) standard Fortitude 'needs', but with a default of 'nil', so all needs are optional
   required_needs:         standard Fortitude 'needs', no default; widget will not render without all needs specified (dangerous)
   instance_variables:     Ruby instance variables; requires that a base class of the widget sets 'use_instance_variables_for_assigns true'
-  no_needs:               Omit a 'needs' declaration entirely; requires that a base class sets 'extra_assigns use'},
+  no_needs:               Omit a 'needs' declaration entirely; requires that a base class sets 'extra_assigns :use'},
             :type => String, :default => 'needs_defaulted_to_nil'
 
         opt :do_end,     "Use do ... end for blocks passed to tag methods, not { ... } (does not affect blocks from ERb)", :type => :boolean
